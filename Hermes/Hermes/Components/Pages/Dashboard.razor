@@ -1,0 +1,165 @@
+@page "/"
+@page "/dashboard"
+@using Hermes.Components.Shared
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Overview</h1>
+        <p class="page-subtitle">Support metrics for the week of Sep 5 – Sep 11, 2026</p>
+    </div>
+    <div class="page-actions">
+        <button class="btn btn-ghost" type="button">Export</button>
+        <button class="btn btn-primary" type="button">New Ticket</button>
+    </div>
+</div>
+
+<div class="overview-grid">
+
+    @* 1 — Left top: Resolved this week *@
+    <StatCard Title="Resolved this week"
+              IconTone="purple"
+              CssClass="card-resolved">
+        <Icon>
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </Icon>
+        <ChildContent>
+        <div class="metric-row">
+            <div class="metric-value">47</div>
+            <span class="trend up">+18%</span>
+        </div>
+        <div class="metric-caption">vs. 40 last week</div>
+        <div class="bar-chart">
+            <div class="bar-col"><div class="bar" style="height:45%"></div><span class="bar-label">Mon</span></div>
+            <div class="bar-col"><div class="bar" style="height:62%"></div><span class="bar-label">Tue</span></div>
+            <div class="bar-col"><div class="bar highlight" style="height:88%"></div><span class="bar-label">Wed</span></div>
+            <div class="bar-col"><div class="bar" style="height:70%"></div><span class="bar-label">Thu</span></div>
+            <div class="bar-col"><div class="bar" style="height:55%"></div><span class="bar-label">Fri</span></div>
+            <div class="bar-col"><div class="bar" style="height:30%"></div><span class="bar-label">Sat</span></div>
+            <div class="bar-col"><div class="bar" style="height:20%"></div><span class="bar-label">Sun</span></div>
+        </div>
+        </ChildContent>
+    </StatCard>
+
+    @* 2 — Right top: Open queue *@
+    <StatCard Title="Open queue"
+              IconTone="blue"
+              CssClass="compact card-open">
+        <Icon>
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </Icon>
+        <ChildContent>
+        <div class="metric-value sm">23</div>
+        <div class="pill-row">
+            <span class="pill new">8 New</span>
+            <span class="pill ongoing">10 On-Going</span>
+            <span class="pill resolved">5 Pending</span>
+        </div>
+        </ChildContent>
+    </StatCard>
+
+    @* 3 — Left middle: First response time *@
+    <StatCard Title="First response time"
+              IconTone="blue"
+              CssClass="card-response">
+        <Icon>
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </Icon>
+        <ChildContent>
+        <div class="metric-row">
+            <div class="metric-value">2h 14m</div>
+            <span class="trend up">-22 min</span>
+        </div>
+        <div class="metric-caption">SLA target: under 4 hours</div>
+        <div class="gauge-wrap">
+            <div class="gauge-meta">
+                <span>Progress to SLA</span>
+                <strong>Within target</strong>
+            </div>
+            <div class="gauge-track">
+                <div class="gauge-fill"></div>
+            </div>
+        </div>
+        </ChildContent>
+    </StatCard>
+
+    @* 4 — Right middle: Overdue *@
+    <StatCard Title="Overdue"
+              IconTone="red"
+              CssClass="compact accent-danger card-overdue">
+        <Icon>
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </Icon>
+        <ChildContent>
+        <div class="metric-row">
+            <div class="metric-value sm" style="color:var(--danger)">5</div>
+            <span class="trend down">+2 today</span>
+        </div>
+        <div class="metric-caption">Requires immediate attention</div>
+        </ChildContent>
+    </StatCard>
+
+    @* 5 — Left bottom: Volume by department *@
+    <StatCard Title="Volume by department"
+              IconTone="purple"
+              CssClass="card-dept">
+        <Icon>
+            <svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>
+        </Icon>
+        <ChildContent>
+        <div class="metric-row">
+            <div class="metric-value sm">72</div>
+            <span class="metric-caption" style="margin:0;padding-top:6px">Total open tickets</span>
+        </div>
+        <div class="dept-list">
+            <div class="dept-row">
+                <span class="dept-name">IT Support</span>
+                <div class="dept-track"><div class="dept-fill" style="width:82%"></div></div>
+                <span class="dept-count">34</span>
+            </div>
+            <div class="dept-row">
+                <span class="dept-name">HR</span>
+                <div class="dept-track"><div class="dept-fill alt" style="width:55%"></div></div>
+                <span class="dept-count">18</span>
+            </div>
+            <div class="dept-row">
+                <span class="dept-name">Finance</span>
+                <div class="dept-track"><div class="dept-fill warn" style="width:38%"></div></div>
+                <span class="dept-count">12</span>
+            </div>
+            <div class="dept-row">
+                <span class="dept-name">Facilities</span>
+                <div class="dept-track"><div class="dept-fill" style="width:24%"></div></div>
+                <span class="dept-count">8</span>
+            </div>
+        </div>
+        </ChildContent>
+    </StatCard>
+
+    @* 6 — Right bottom: Active users *@
+    <StatCard Title="Active users"
+              IconTone="green"
+              CssClass="card-users">
+        <Icon>
+            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </Icon>
+        <ChildContent>
+        <div class="metric-row">
+            <div class="metric-value sm">128</div>
+            <span class="trend up">+6 new</span>
+        </div>
+        <div class="users-body">
+            <div class="avatar-stack">
+                <span class="a1">AU</span>
+                <span class="a2">JS</span>
+                <span class="a3">MK</span>
+                <span class="a4">+42</span>
+            </div>
+            <div class="users-online">
+                <div class="count">36 online now</div>
+                <div class="sub">Across 4 departments</div>
+            </div>
+        </div>
+        </ChildContent>
+    </StatCard>
+
+</div>

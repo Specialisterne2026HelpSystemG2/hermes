@@ -1,0 +1,32 @@
+/* CSS variables only */
+
+:root {
+    --bg-default: #E8EDF3;
+    --bg-sidebar: #F0F3F8;
+    --surface: #FFFFFF;
+    --surface-muted: #F5F7FA;
+    --border: #C8D1DC;
+    --border-subtle: #D8DEE5;
+    --text-primary: #0D2137;
+    --text-secondary: #6D767E;
+    --text-muted: #84818A;
+    --primary: #5B68C4;
+    --primary-hover: #4A56B0;
+    --primary-subtle: #D8E4FD;
+    --secondary: #386BAF;
+    --secondary-subtle: #E0EDFC;
+    --success: #059669;
+    --success-subtle: #D1FAE5;
+    --danger: #DC2626;
+    --danger-subtle: #FEE2E2;
+    --warning: #F8C129;
+
+    /* Sidebar nav — darker labels & stronger active state */
+    --nav-text: #4F5864;
+    --nav-text-hover: #0D2137;
+    --nav-active-text: #3D4899;
+    --nav-active-bg: #B8CAF0;
+
+    /* Card eyebrow — dark navy, distinct from gray captions */
+    --card-title: #1E3352;
+}
