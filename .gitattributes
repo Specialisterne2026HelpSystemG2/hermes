@@ -1,0 +1,14 @@
+# Force LF in the repository and on checkout, on every OS.
+# Without this, files authored on Windows arrive as CRLF and show up as
+# whole-file rewrites when diffed against files authored on macOS.
+* text=auto eol=lf
+
+# Binary assets: never convert.
+*.png   binary
+*.ico   binary
+*.db    binary
+*.dll   binary
+*.exe   binary
+*.pdb   binary
+*.woff  binary
+*.woff2 binary
