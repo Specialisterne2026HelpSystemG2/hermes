@@ -1,0 +1,10 @@
+/* The logout control is a submit button so it can POST, but it has to read as one
+   of the sidebar links, hence resetting the button chrome. */
+.logout-button {
+    width: 100%;
+    background: none;
+    border: none;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+}

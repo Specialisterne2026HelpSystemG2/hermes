@@ -37,8 +37,9 @@ public class UserFormModel : IValidatableObject
     public string Email { get; set; } = string.Empty;
 
     // ---------- RF01.2: password ----------
-    // No [Required] here: when editing, the password is optional and leaving it blank
-    // keeps the current one. The rules live in Validate() below.
+    // Not [Required]: when editing, leaving it blank keeps the current password.
+    // UserPasswordAttribute handles that conditional requirement and the strength rules.
+    [UserPassword]
     [StringLength(64, ErrorMessage = "Password must be at most {1} characters.")]
     [DataType(DataType.Password)]
     public string? Password { get; set; }
@@ -57,42 +58,19 @@ public class UserFormModel : IValidatableObject
     public bool IsActive { get; set; } = true;
 
     /// <summary>
-    /// Cross-field validation (password against confirmation, and the conditional
-    /// requirement of the password itself).
+    /// Genuinely cross-field validation. Everything that concerns a single property
+    /// lives in an attribute instead, so it shows up on the first submit.
     ///
     /// Note: Blazor's DataAnnotationsValidator only runs IValidatableObject when
-    /// validating the whole object, meaning on submit, not on each field change. So
-    /// these messages appear when Save is clicked, while the attribute messages
-    /// appear as soon as a field loses focus.
+    /// validating the whole object, meaning on submit rather than on each field
+    /// change, and only once every property attribute has passed.
     /// </summary>
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        var passwordInformed = !string.IsNullOrWhiteSpace(Password);
-
-        if (!IsEditMode && !passwordInformed)
+        if (string.IsNullOrWhiteSpace(Password))
         {
-            yield return new ValidationResult(
-                "Password is required.", new[] { nameof(Password) });
+            // Editing without changing the password: nothing to compare.
             yield break;
-        }
-
-        if (!passwordInformed)
-        {
-            // Editing without changing the password: nothing to validate.
-            yield break;
-        }
-
-        if (Password!.Length < 8)
-        {
-            yield return new ValidationResult(
-                "Password must be at least 8 characters.", new[] { nameof(Password) });
-        }
-
-        if (!Password.Any(char.IsLetter) || !Password.Any(char.IsDigit))
-        {
-            yield return new ValidationResult(
-                "Password must contain at least one letter and one digit.",
-                new[] { nameof(Password) });
         }
 
         if (Password != ConfirmPassword)

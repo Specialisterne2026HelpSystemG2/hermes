@@ -1,0 +1,217 @@
+@page "/users"
+@using Hermes.Common
+@using Hermes.Data
+@using Hermes.Models
+@using Hermes.Services
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@inject IUserService UserService
+
+<PageTitle>Users</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Users</h1>
+        <p class="page-subtitle">Manage who can access Hermes.</p>
+    </div>
+    <div class="page-actions">
+        <a class="btn btn-primary" href="/users/new">New user</a>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(feedback))
+{
+    <div class="banner banner-success" role="status">
+        <span>@feedback</span>
+        <button type="button" class="banner-close" aria-label="Dismiss message"
+                @onclick="() => feedback = null">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="banner banner-danger" role="alert">@errorMessage</div>
+}
+
+<div class="search-field">
+    <label class="field-label" for="search">Search</label>
+    <input id="search" class="text-input" type="search" placeholder="Name or email"
+           value="@searchTerm" @oninput="OnSearchChangedAsync" />
+</div>
+
+@if (loading)
+{
+    <p class="empty-note">Loading…</p>
+}
+else if (users.Count == 0)
+{
+    <div class="banner banner-info" role="status">
+        @(string.IsNullOrWhiteSpace(searchTerm)
+            ? "No users registered yet."
+            : $"No users found for \"{searchTerm}\".")
+    </div>
+}
+else
+{
+    <div class="table-card">
+        <table class="data-table">
+            <caption class="visually-hidden">
+                Registered users, with type, department, status and creation date.
+            </caption>
+            <thead>
+                <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Department</th>
+                    <th scope="col">Status</th>
+                    <th scope="col" class="col-created">Created</th>
+                    <th scope="col" class="col-actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in users)
+                {
+                    <tr @key="user.Id">
+                        <td>@user.Name</td>
+                        <td class="col-email">@user.Email</td>
+                        <td>@user.Type.GetDisplayName()</td>
+                        <td>@user.Department.GetDisplayName()</td>
+                        <td>
+                            @if (user.IsActive)
+                            {
+                                <span class="pill pill-active">Active</span>
+                            }
+                            else
+                            {
+                                <span class="pill pill-inactive">Inactive</span>
+                            }
+                        </td>
+                        <td class="col-created">@user.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</td>
+                        <td class="col-actions">
+                            <a class="btn btn-ghost btn-sm" href="@($"/users/{user.Id}/edit")">Edit</a>
+                            <button type="button" class="btn btn-danger btn-sm"
+                                    @onclick="() => AskForDeletion(user)">
+                                Delete
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <p class="empty-note">@users.Count user(s) shown.</p>
+}
+
+@* ---------- Delete confirmation ---------- *@
+@if (userPendingDeletion is not null)
+{
+    <div class="dialog-backdrop"></div>
+    <div class="dialog-wrap" role="dialog" aria-modal="true" aria-labelledby="deleteTitle">
+        <div class="dialog">
+            <div class="dialog-head">
+                <h2 class="dialog-title" id="deleteTitle">Confirm deletion</h2>
+                <button type="button" class="banner-close" aria-label="Cancel"
+                        @onclick="CancelDeletion">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="dialog-body">
+                <p>
+                    Delete the user <strong>@userPendingDeletion.Name</strong>
+                    (@userPendingDeletion.Email)? This cannot be undone.
+                </p>
+            </div>
+            <div class="dialog-foot">
+                <button type="button" class="btn btn-ghost" @onclick="CancelDeletion">
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-danger" @onclick="DeleteConfirmedAsync"
+                        disabled="@deleting">
+                    @(deleting ? "Deleting…" : "Delete")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>Success message handed over by the create/edit screen (?success=...).</summary>
+    [SupplyParameterFromQuery(Name = "success")]
+    public string? SuccessFromQuery { get; set; }
+
+    private IReadOnlyList<ApplicationUser> users = Array.Empty<ApplicationUser>();
+    private string searchTerm = string.Empty;
+    private bool loading = true;
+    private bool deleting;
+    private string? feedback;
+    private string? errorMessage;
+    private ApplicationUser? userPendingDeletion;
+
+    protected override async Task OnInitializedAsync()
+    {
+        feedback = SuccessFromQuery;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        try
+        {
+            users = await UserService.GetAllAsync(searchTerm);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load the users: {ex.Message}";
+            users = Array.Empty<ApplicationUser>();
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task OnSearchChangedAsync(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? string.Empty;
+        await LoadAsync();
+    }
+
+    private void AskForDeletion(ApplicationUser user)
+    {
+        errorMessage = null;
+        feedback = null;
+        userPendingDeletion = user;
+    }
+
+    private void CancelDeletion() => userPendingDeletion = null;
+
+    private async Task DeleteConfirmedAsync()
+    {
+        if (userPendingDeletion is null)
+        {
+            return;
+        }
+
+        deleting = true;
+        var name = userPendingDeletion.Name;
+        var result = await UserService.DeleteAsync(userPendingDeletion.Id);
+        deleting = false;
+        userPendingDeletion = null;
+
+        if (result.Succeeded)
+        {
+            feedback = $"User \"{name}\" deleted.";
+        }
+        else
+        {
+            errorMessage = result.ErrorMessage;
+        }
+
+        await LoadAsync();
+    }
+}

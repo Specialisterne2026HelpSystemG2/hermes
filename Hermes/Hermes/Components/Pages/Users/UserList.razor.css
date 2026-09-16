@@ -1,0 +1,121 @@
+.search-field {
+    max-width: 340px;
+    margin-bottom: 18px;
+}
+
+.table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow-x: auto;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.data-table th,
+.data-table td {
+    text-align: left;
+    padding: 12px 14px;
+    vertical-align: middle;
+}
+
+/* Only the columns that read badly when broken are kept on one line. Letting the
+   rest wrap is what keeps all seven columns on screen without a scrollbar. */
+.col-created,
+.col-actions {
+    white-space: nowrap;
+}
+
+.data-table td.col-email {
+    word-break: break-word;
+}
+
+.data-table thead th {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--card-title);
+    background: var(--surface-muted);
+    border-bottom: 1px solid var(--border);
+}
+
+.data-table tbody tr + tr td {
+    border-top: 1px solid var(--border-subtle);
+}
+
+.data-table tbody tr:hover td {
+    background: var(--surface-muted);
+}
+
+.col-actions {
+    text-align: right;
+}
+
+.col-actions .btn + .btn,
+.col-actions a + button {
+    margin-left: 6px;
+}
+
+
+/* ── DELETE DIALOG ──
+   Hand-rolled rather than Bootstrap's modal, which needs its JS bundle. */
+.dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(13, 33, 55, 0.55);
+    z-index: 1040;
+}
+
+.dialog-wrap {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 1050;
+}
+
+.dialog {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: 0 12px 32px rgba(13, 33, 55, 0.2);
+}
+
+.dialog-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.dialog-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.dialog-body {
+    padding: 18px 20px;
+    font-size: 13px;
+    color: var(--text-primary);
+    line-height: 1.55;
+}
+
+.dialog-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border-subtle);
+}
