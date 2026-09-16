@@ -1,4 +1,5 @@
 ﻿@inherits LayoutComponentBase
+@using Hermes.Data
 
 <div class="app">
     <aside class="sidebar">
@@ -11,16 +12,30 @@
                 <button class="menu-btn" aria-label="Menu" type="button">
                     <i class="bi bi-list" aria-hidden="true"></i>
                 </button>
-                <span>Welcome! <strong>User User</strong></span>
+                <AuthorizeView>
+                    <Authorized>
+                        <span>Welcome! <strong>@DisplayName(context)</strong></span>
+                    </Authorized>
+                    <NotAuthorized>
+                        <span>Welcome to Hermes</span>
+                    </NotAuthorized>
+                </AuthorizeView>
             </div>
             <div class="topbar-right">
-                <div class="profile">
-                    <div class="avatar">
-                        <i class="bi bi-person" aria-hidden="true"></i>
-                    </div>
-                    <span>User User</span>
-                    <i class="bi bi-chevron-down chevron" aria-hidden="true"></i>
-                </div>
+                <AuthorizeView>
+                    <Authorized>
+                        <div class="profile">
+                            <div class="avatar">
+                                <i class="bi bi-person" aria-hidden="true"></i>
+                            </div>
+                            <span>@DisplayName(context)</span>
+                            <i class="bi bi-chevron-down chevron" aria-hidden="true"></i>
+                        </div>
+                    </Authorized>
+                    <NotAuthorized>
+                        <a class="btn btn-primary" href="Account/Login">Log in</a>
+                    </NotAuthorized>
+                </AuthorizeView>
             </div>
         </header>
 
@@ -34,3 +49,14 @@
     <a href="" class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+    /// <summary>
+    /// Identity puts the email in Name, so prefer the display name claim and fall
+    /// back to the email for users created before that claim existed.
+    /// </summary>
+    private static string DisplayName(AuthenticationState state) =>
+        state.User.FindFirst(ApplicationUserClaimsPrincipalFactory.DisplayNameClaim)?.Value
+        ?? state.User.Identity?.Name
+        ?? "User";
+}

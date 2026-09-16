@@ -1,6 +1,8 @@
 @page "/Account/Register"
 
 @using System.ComponentModel.DataAnnotations
+@using Hermes.Common
+@using Hermes.Models
 @using Microsoft.AspNetCore.Identity
 
 @inject UserManager<ApplicationUser> UserManager
@@ -22,9 +24,25 @@
             <hr />
             <ValidationSummary class="text-danger" role="alert" />
             <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.Name" id="Input.Name" class="form-control" autocomplete="name" aria-required="true" placeholder="Full name" />
+                <label for="Input.Name">Name</label>
+                <ValidationMessage For="() => Input.Name" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
                 <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
                 <label for="Input.Email">Email</label>
                 <ValidationMessage For="() => Input.Email" class="text-danger" />
+            </div>
+            <div class="form-floating mb-3">
+                <InputSelect @bind-Value="Input.Department" id="Input.Department" class="form-select" aria-required="true">
+                    <option value="">-- Select --</option>
+                    @foreach (var department in Enum.GetValues<Department>())
+                    {
+                        <option value="@department">@department.GetDisplayName()</option>
+                    }
+                </InputSelect>
+                <label for="Input.Department">Department</label>
+                <ValidationMessage For="() => Input.Department" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
                 <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
@@ -60,6 +78,11 @@
     public async Task RegisterUser(EditContext editContext)
     {
         var user = CreateUser();
+
+        user.Name = Input.Name.Trim();
+        user.Department = Input.Department!.Value;
+        // Self-registration always yields a standard user; only an admin can promote.
+        user.Type = UserType.Standard;
 
         await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
         var emailStore = GetEmailStore();
@@ -102,10 +125,19 @@
 
     private sealed class InputModel
     {
+        [Required(ErrorMessage = "Name is required.")]
+        [StringLength(120, MinimumLength = 3, ErrorMessage = "Name must be between {2} and {1} characters.")]
+        [Display(Name = "Name")]
+        public string Name { get; set; } = "";
+
         [Required]
         [EmailAddress]
         [Display(Name = "Email")]
         public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "Department is required.")]
+        [Display(Name = "Department")]
+        public Department? Department { get; set; }
 
         [Required]
         [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]

@@ -1,0 +1,291 @@
+@* RF01.1 — user registration form, also used for editing. *@
+@page "/users/new"
+@page "/users/{Id}/edit"
+@using Hermes.Common
+@using Hermes.Models
+@using Hermes.Services
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@implements IDisposable
+@inject IUserService UserService
+@inject NavigationManager Navigation
+
+<PageTitle>@Title</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">@Title</h1>
+        <p class="page-subtitle">
+            @(IsEditMode
+                ? "Update this user's details or reset their password."
+                : "Create an account and choose what it can access.")
+        </p>
+    </div>
+</div>
+
+@if (notFound)
+{
+    <div class="banner banner-danger" role="alert">
+        User not found. It may have been deleted.
+    </div>
+    <a class="btn btn-ghost" href="/users">Back to the list</a>
+}
+else if (editContext is null)
+{
+    <p class="empty-note">Loading…</p>
+}
+else
+{
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="banner banner-danger" role="alert">@errorMessage</div>
+    }
+
+    <EditForm EditContext="editContext" OnValidSubmit="HandleValidSubmitAsync" novalidate>
+        <DataAnnotationsValidator />
+
+        <div class="form-card">
+            <div class="form-grid">
+
+                @* ---------- Name (RF01.2) ---------- *@
+                <div class="field span-2">
+                    <label class="field-label" for="name">
+                        Name <span class="field-required" aria-hidden="true">*</span>
+                    </label>
+                    <InputText id="name" class="text-input" @bind-Value="model.Name"
+                               autocomplete="name" placeholder="Full name" aria-required="true" />
+                    <ValidationMessage For="@(() => model.Name)" class="field-error" />
+                </div>
+
+                @* ---------- Email (RF01.2 + RF01.3) ---------- *@
+                <div class="field span-2">
+                    <label class="field-label" for="email">
+                        Email <span class="field-required" aria-hidden="true">*</span>
+                    </label>
+                    <InputText id="email" type="email" class="text-input" @bind-Value="model.Email"
+                               autocomplete="email" placeholder="name&#64;company.com" aria-required="true" />
+                    <ValidationMessage For="@(() => model.Email)" class="field-error" />
+                </div>
+
+                @* ---------- Password (RF01.2) ---------- *@
+                <div class="field">
+                    <label class="field-label" for="password">
+                        Password
+                        @if (!IsEditMode)
+                        {
+                            <span class="field-required" aria-hidden="true">*</span>
+                        }
+                    </label>
+                    <InputText id="password" type="password" class="text-input"
+                               @bind-Value="model.Password" autocomplete="new-password"
+                               aria-describedby="passwordHint" />
+                    <p class="field-hint" id="passwordHint">
+                        @(IsEditMode
+                            ? "Leave blank to keep the current password."
+                            : "At least 8 characters, with one letter and one digit.")
+                    </p>
+                    <ValidationMessage For="@(() => model.Password)" class="field-error" />
+                </div>
+
+                <div class="field">
+                    <label class="field-label" for="confirmPassword">Confirm password</label>
+                    <InputText id="confirmPassword" type="password" class="text-input"
+                               @bind-Value="model.ConfirmPassword" autocomplete="new-password" />
+                    <ValidationMessage For="@(() => model.ConfirmPassword)" class="field-error" />
+                </div>
+
+                @* ---------- User type (RF01.2) ---------- *@
+                <div class="field">
+                    <label class="field-label" for="type">
+                        User type <span class="field-required" aria-hidden="true">*</span>
+                    </label>
+                    <InputSelect id="type" class="select-input" @bind-Value="model.Type"
+                                 aria-required="true">
+                        <option value="">-- Select --</option>
+                        @foreach (var type in Enum.GetValues<UserType>())
+                        {
+                            <option value="@type">@type.GetDisplayName()</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => model.Type)" class="field-error" />
+                </div>
+
+                @* ---------- Department (RF01.2) ---------- *@
+                <div class="field">
+                    <label class="field-label" for="department">
+                        Department <span class="field-required" aria-hidden="true">*</span>
+                    </label>
+                    <InputSelect id="department" class="select-input" @bind-Value="model.Department"
+                                 aria-required="true">
+                        <option value="">-- Select --</option>
+                        @foreach (var department in Enum.GetValues<Department>())
+                        {
+                            <option value="@department">@department.GetDisplayName()</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => model.Department)" class="field-error" />
+                </div>
+
+                <div class="field span-2">
+                    <div class="checkbox-row">
+                        <InputCheckbox id="isActive" class="checkbox-input"
+                                       @bind-Value="model.IsActive" />
+                        <label class="field-label" for="isActive">Active user</label>
+                    </div>
+                </div>
+
+            </div>
+
+            <p class="empty-note required-note">
+                Required fields are marked with an asterisk
+                (<span class="field-required" aria-hidden="true">*</span>).
+            </p>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary" disabled="@saving">
+                    @(saving ? "Saving…" : "Save")
+                </button>
+                <a class="btn btn-ghost" href="/users">Cancel</a>
+            </div>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public string? Id { get; set; }
+
+    private bool IsEditMode => !string.IsNullOrEmpty(Id);
+
+    private string Title => IsEditMode ? "Edit user" : "New user";
+
+    private UserFormModel model = UserFormModel.ForCreate();
+    private EditContext? editContext;
+    private ValidationMessageStore? messageStore;
+
+    private bool saving;
+    private bool notFound;
+    private string? errorMessage;
+    private string? loadedId;
+    private bool loadedForCreate;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Avoid reloading (and losing what the user typed) when the component gets
+        // parameters again without the route having changed.
+        if (IsEditMode && loadedId == Id)
+        {
+            return;
+        }
+
+        if (!IsEditMode && loadedForCreate)
+        {
+            return;
+        }
+
+        notFound = false;
+        errorMessage = null;
+
+        if (IsEditMode)
+        {
+            var user = await UserService.GetByIdAsync(Id!);
+            if (user is null)
+            {
+                notFound = true;
+                DetachEditContext();
+                editContext = null;
+                return;
+            }
+
+            model = UserFormModel.FromUser(user);
+            loadedId = Id;
+            loadedForCreate = false;
+        }
+        else
+        {
+            model = UserFormModel.ForCreate();
+            loadedId = null;
+            loadedForCreate = true;
+        }
+
+        BuildEditContext();
+    }
+
+    private void BuildEditContext()
+    {
+        DetachEditContext();
+        editContext = new EditContext(model);
+        messageStore = new ValidationMessageStore(editContext);
+        editContext.OnFieldChanged += HandleFieldChanged;
+    }
+
+    private void DetachEditContext()
+    {
+        if (editContext is not null)
+        {
+            editContext.OnFieldChanged -= HandleFieldChanged;
+        }
+    }
+
+    /// <summary>
+    /// Clears the server-side error (for example "email already exists") as soon as
+    /// the user touches the field, otherwise the message would stay stuck on screen.
+    /// </summary>
+    private void HandleFieldChanged(object? sender, FieldChangedEventArgs e)
+    {
+        messageStore?.Clear(e.FieldIdentifier);
+        editContext?.NotifyValidationStateChanged();
+    }
+
+    private async Task HandleValidSubmitAsync()
+    {
+        if (editContext is null || messageStore is null)
+        {
+            return;
+        }
+
+        saving = true;
+        errorMessage = null;
+        messageStore.Clear();
+        editContext.NotifyValidationStateChanged();
+
+        OperationResult result;
+        try
+        {
+            result = IsEditMode
+                ? await UserService.UpdateAsync(model)
+                : await UserService.CreateAsync(model);
+        }
+        catch (Exception ex)
+        {
+            saving = false;
+            errorMessage = $"Unexpected error while saving: {ex.Message}";
+            return;
+        }
+
+        saving = false;
+
+        if (result.Succeeded)
+        {
+            var message = IsEditMode ? "User updated." : "User created.";
+            Navigation.NavigateTo($"/users?success={Uri.EscapeDataString(message)}");
+            return;
+        }
+
+        // Business-rule errors from the service (a duplicate email, say) go back to
+        // the field they belong to.
+        foreach (var fieldError in result.FieldErrors)
+        {
+            messageStore.Add(editContext.Field(fieldError.Key), fieldError.Value);
+        }
+
+        editContext.NotifyValidationStateChanged();
+
+        if (result.FieldErrors.Count == 0)
+        {
+            errorMessage = result.ErrorMessage ?? "Could not save the user.";
+        }
+    }
+
+    public void Dispose() => DetachEditContext();
+}

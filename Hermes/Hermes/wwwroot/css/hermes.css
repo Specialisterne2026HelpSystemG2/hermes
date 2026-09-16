@@ -265,6 +265,157 @@ body {
 
 .btn-ghost:hover { background: var(--surface-muted); }
 
+.btn-danger {
+    background: var(--danger-strong);
+    color: #fff;
+}
+
+.btn-danger:hover { background: var(--danger-strong-hover); }
+
+.btn-sm {
+    font-size: 11px;
+    padding: 6px 11px;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Anchors styled as buttons lose the underline app.css gives links. */
+a.btn { text-decoration: none; display: inline-block; }
+
+
+/* ── FOCUS ──
+   One visible ring for every interactive element. :focus-visible only, so a
+   mouse click does not leave a ring behind but keyboard navigation always does. */
+.btn:focus-visible,
+.text-input:focus-visible,
+.select-input:focus-visible,
+.checkbox-input:focus-visible,
+.banner-close:focus-visible,
+.sidebar .nav-item:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+
+/* ── FORM FIELDS ── */
+.field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+}
+
+.field-required {
+    color: var(--danger-strong);
+}
+
+.text-input,
+.select-input {
+    font-family: inherit;
+    font-size: 13px;
+    width: 100%;
+    padding: 9px 12px;
+    color: var(--text-primary);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.text-input::placeholder { color: var(--text-readable); }
+
+.field-hint {
+    font-size: 11px;
+    color: var(--text-readable);
+    margin-top: 5px;
+}
+
+.field-error {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--danger-strong);
+    margin-top: 5px;
+}
+
+.checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.checkbox-input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary-hover);
+}
+
+.checkbox-row .field-label { margin-bottom: 0; }
+
+
+/* ── BANNERS ── */
+.banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 13px;
+    padding: 11px 14px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    margin-bottom: 18px;
+}
+
+.banner-success {
+    background: var(--success-subtle);
+    border-color: var(--success);
+    color: var(--success-strong);
+}
+
+.banner-danger {
+    background: var(--danger-subtle);
+    border-color: var(--danger);
+    color: var(--danger-strong);
+}
+
+.banner-info {
+    background: var(--secondary-subtle);
+    border-color: var(--secondary);
+    color: var(--text-primary);
+}
+
+.banner-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: inherit;
+    font-size: 12px;
+    line-height: 1;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+.empty-note {
+    font-size: 12px;
+    color: var(--text-readable);
+}
+
+
+/* ── STATUS PILLS ── */
+.pill-active {
+    background: var(--success-subtle);
+    color: var(--success-strong);
+}
+
+.pill-inactive {
+    background: var(--surface-muted);
+    color: var(--text-readable);
+    border: 1px solid var(--border-subtle);
+}
+
 
 
 

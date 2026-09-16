@@ -29,4 +29,16 @@
 
     /* Card eyebrow — dark navy, distinct from gray captions */
     --card-title: #1E3352;
+
+    /* Body copy that clears 7:1 on --surface, --surface-muted and --bg-default,
+       unlike --text-muted (~3.8:1). */
+    --text-readable: #464E55;
+
+    /* Darkened variants that clear 7:1 both under white text and against their
+       own subtle background. */
+    --danger-strong: #911A1A;
+    --danger-strong-hover: #7F1616;
+    --success-strong: #035943;
+
+    --focus-ring: #1B3A8F;
 }

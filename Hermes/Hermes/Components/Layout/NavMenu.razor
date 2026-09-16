@@ -1,4 +1,6 @@
-﻿<div class="logo-block">
+﻿@inject NavigationManager Navigation
+
+<div class="logo-block">
     <div class="logo-text">
         ꒰১ HERMES ໒꒱
         <span>HELP TICKETING SYSTEM</span>
@@ -6,31 +8,66 @@
 </div>
 
 <nav class="nav">
-    <NavLink class="nav-item" href="" Match="NavLinkMatch.All">
-        <i class="bi bi-grid-fill" aria-hidden="true"></i>
-        Dashboard
-    </NavLink>
-    <NavLink class="nav-item" href="tickets">
-        <i class="bi bi-ticket-perforated" aria-hidden="true"></i>
-        Tickets
-    </NavLink>
-    <NavLink class="nav-item" href="users">
-        <i class="bi bi-people" aria-hidden="true"></i>
-        Users
-    </NavLink>
-    <NavLink class="nav-item" href="departments">
-        <i class="bi bi-building" aria-hidden="true"></i>
-        Departments
-    </NavLink>
-    <NavLink class="nav-item" href="settings">
-        <i class="bi bi-gear" aria-hidden="true"></i>
-        Settings
-    </NavLink>
+    <AuthorizeView>
+        <Authorized>
+            <NavLink class="nav-item" href="" Match="NavLinkMatch.All">
+                <i class="bi bi-grid-fill" aria-hidden="true"></i>
+                Dashboard
+            </NavLink>
+            <NavLink class="nav-item" href="tickets">
+                <i class="bi bi-ticket-perforated" aria-hidden="true"></i>
+                Tickets
+            </NavLink>
+        </Authorized>
+    </AuthorizeView>
+
+    @* Only an admin can manage users (RF01), so hide what they cannot open. *@
+    <AuthorizeView Roles="Admin">
+        <Authorized>
+            <NavLink class="nav-item" href="users">
+                <i class="bi bi-people" aria-hidden="true"></i>
+                Users
+            </NavLink>
+            <NavLink class="nav-item" href="departments">
+                <i class="bi bi-building" aria-hidden="true"></i>
+                Departments
+            </NavLink>
+            <NavLink class="nav-item" href="settings">
+                <i class="bi bi-gear" aria-hidden="true"></i>
+                Settings
+            </NavLink>
+        </Authorized>
+    </AuthorizeView>
 </nav>
 
 <div class="logout">
-    <div class="nav-item">
-        <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
-        Log Out
-    </div>
+    <AuthorizeView>
+        <Authorized>
+            @* A POST is required here: signing out on a GET would let any page log
+               the user out with an <img> tag. *@
+            <form action="Account/Logout" method="post">
+                <AntiforgeryToken />
+                <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                <button type="submit" class="nav-item logout-button">
+                    <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+                    Log Out
+                </button>
+            </form>
+        </Authorized>
+        <NotAuthorized>
+            <NavLink class="nav-item" href="Account/Login">
+                <i class="bi bi-box-arrow-in-right" aria-hidden="true"></i>
+                Log In
+            </NavLink>
+        </NotAuthorized>
+    </AuthorizeView>
 </div>
+
+@code {
+    private string currentUrl = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        currentUrl = Navigation.ToBaseRelativePath(Navigation.Uri);
+    }
+}

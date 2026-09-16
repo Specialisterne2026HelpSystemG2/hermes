@@ -1,3 +1,4 @@
+using Hermes.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,6 +10,7 @@ public static class SeedData
 
     private const string AdminEmail = "admin@hermes.local";
     private const string AdminPassword = "Admin123!";
+    private const string AdminName = "Hermes Administrator";
 
     public static async Task InitializeAsync(IServiceProvider services)
     {
@@ -22,8 +24,22 @@ public static class SeedData
         }
 
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-        if (await userManager.FindByEmailAsync(AdminEmail) is not null)
+
+        var existing = await userManager.FindByEmailAsync(AdminEmail);
+        if (existing is not null)
         {
+            // An admin created before the profile columns existed has them at their
+            // default (empty name, Type 0), which no longer satisfies the model.
+            if (existing.Type == UserType.Admin && !string.IsNullOrWhiteSpace(existing.Name))
+            {
+                return;
+            }
+
+            existing.Name = AdminName;
+            existing.Type = UserType.Admin;
+            existing.Department = Department.InformationTechnology;
+            existing.IsActive = true;
+            await userManager.UpdateAsync(existing);
             return;
         }
 
@@ -31,7 +47,11 @@ public static class SeedData
         {
             UserName = AdminEmail,
             Email = AdminEmail,
-            EmailConfirmed = true
+            EmailConfirmed = true,
+            Name = AdminName,
+            Type = UserType.Admin,
+            Department = Department.InformationTechnology,
+            IsActive = true
         };
 
         var result = await userManager.CreateAsync(admin, AdminPassword);
