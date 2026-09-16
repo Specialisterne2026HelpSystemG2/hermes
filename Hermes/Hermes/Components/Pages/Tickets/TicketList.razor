@@ -21,7 +21,10 @@
         </p>
     </div>
     <div class="page-actions">
-        <a class="btn btn-primary" href="/tickets/new">New ticket</a>
+        <a class="btn btn-primary" href="/tickets/new">
+            <i class="bi bi-plus-lg" aria-hidden="true"></i>
+            New ticket
+        </a>
     </div>
 </div>
 
@@ -41,67 +44,70 @@
     <div class="banner banner-danger" role="alert">@errorMessage</div>
 }
 
-<div class="filter-bar">
-    <div class="filter">
-        <label class="field-label" for="search">Search</label>
-        <input id="search" class="text-input" type="search" placeholder="Title or description"
+@* ── Toolbar: search + dropdowns ── *@
+<div class="toolbar">
+    <div class="toolbarSearch">
+        <label class="visually-hidden" for="search">Search tickets</label>
+        <span class="searchIcon" aria-hidden="true"><i class="bi bi-search"></i></span>
+        <input id="search" class="text-input searchInput" type="search"
+               placeholder="Search for ticket"
                value="@filter.Search" @oninput="OnSearchChangedAsync" />
     </div>
 
-    <div class="filter">
-        <label class="field-label" for="category">Category</label>
-        <select id="category" class="select-input" value="@(filter.CategoryId?.ToString() ?? "")"
+    <div class="toolbarFilters">
+        <label class="visually-hidden" for="category">Category</label>
+        <select id="category" class="select-input filterSelect"
+                value="@(filter.CategoryId?.ToString() ?? "")"
                 @onchange="OnCategoryChangedAsync">
-            <option value="">All</option>
+            <option value="">All categories</option>
             @foreach (var category in categories)
             {
                 <option value="@category.Id">@category.Name</option>
             }
         </select>
-    </div>
 
-    <div class="filter">
-        <label class="field-label" for="status">Status</label>
-        <select id="status" class="select-input" value="@(filter.Status?.ToString() ?? "")"
-                @onchange="OnStatusChangedAsync">
-            <option value="">All</option>
-            @foreach (var status in Enum.GetValues<TicketStatus>())
-            {
-                <option value="@status">@status.GetDisplayName()</option>
-            }
-        </select>
-    </div>
-
-    @if (isAdmin)
-    {
-        <div class="filter">
-            <label class="field-label" for="collaborator">Collaborator</label>
-            <select id="collaborator" class="select-input" value="@(filter.CollaboratorId ?? "")"
+        @if (isAdmin)
+        {
+            <label class="visually-hidden" for="collaborator">Collaborator</label>
+            <select id="collaborator" class="select-input filterSelect"
+                    value="@(filter.CollaboratorId ?? "")"
                     @onchange="OnCollaboratorChangedAsync">
-                <option value="">All</option>
+                <option value="">All users</option>
                 @foreach (var user in collaborators)
                 {
                     <option value="@user.Id">@user.Name</option>
                 }
             </select>
-        </div>
-    }
+        }
 
-    <div class="filter">
-        <label class="field-label" for="sort">Sort by</label>
-        <select id="sort" class="select-input" value="@sortValue" @onchange="OnSortChangedAsync">
+        <label class="visually-hidden" for="sort">Sort by</label>
+        <select id="sort" class="select-input filterSelect"
+                value="@sortValue" @onchange="OnSortChangedAsync">
             <option value="CreatedAt-desc">Newest first</option>
             <option value="CreatedAt-asc">Oldest first</option>
             <option value="Priority-desc">Highest priority</option>
             <option value="Priority-asc">Lowest priority</option>
         </select>
-    </div>
 
-    <div class="filter filter-reset">
-        <button type="button" class="btn btn-ghost" @onclick="ResetFiltersAsync">Clear</button>
+        <button type="button" class="btn btn-ghost btn-sm" @onclick="ResetFiltersAsync">Clear</button>
     </div>
 </div>
 
+@* ── Status tabs ── *@
+<div class="tabs" role="tablist" aria-label="Ticket status">
+    @foreach (var tab in StatusTabs)
+    {
+        <button type="button" role="tab"
+                class="tab @(activeTab == tab.Status ? "tabActive" : null)"
+                aria-selected="@(activeTab == tab.Status)"
+                @onclick="() => SetTabAsync(tab.Status)">
+            <i class="bi @tab.Icon" aria-hidden="true"></i>
+            @tab.Label
+        </button>
+    }
+</div>
+
+@* ── Content ── *@
 @if (loading)
 {
     <p class="empty-note">Loading…</p>
@@ -112,44 +118,48 @@ else if (tickets.Count == 0)
 }
 else
 {
-    <div class="table-card">
-        <table class="data-table">
-            <caption class="visually-hidden">
-                Tickets with category, status, priority, collaborator and creation date.
-            </caption>
-            <thead>
-                <tr>
-                    <th scope="col" class="col-id">#</th>
-                    <th scope="col">Title</th>
-                    <th scope="col">Category</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Priority</th>
-                    <th scope="col">Collaborator</th>
-                    <th scope="col" class="col-created">Created</th>
-                    <th scope="col" class="col-actions">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var ticket in tickets)
-                {
-                    <tr @key="ticket.Id">
-                        <td class="col-id">@ticket.Id</td>
-                        <td>@ticket.Title</td>
-                        <td>@(ticket.Category?.Name ?? "—")</td>
-                        <td><span class="pill @StatusClass(ticket.Status)">@ticket.Status.GetDisplayName()</span></td>
-                        <td><span class="pill @PriorityClass(ticket.Priority)">@ticket.Priority.GetDisplayName()</span></td>
-                        <td>@(ticket.CreatedBy?.Name ?? "Removed user")</td>
-                        <td class="col-created">@ticket.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</td>
-                        <td class="col-actions">
-                            <a class="btn btn-ghost btn-sm" href="@($"/tickets/{ticket.Id}")">Open</a>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+    <ul class="ticketList">
+        @foreach (var ticket in tickets)
+        {
+            <li class="ticketCard" @key="ticket.Id">
+                <div class="ticketCardHead">
+                    <div class="ticketIdRow">
+                        <span class="statusDot @StatusDotClass(ticket.Status)" aria-hidden="true"></span>
+                        <span class="ticketId">Ticket# @ticket.Id</span>
+                        @if (ticket.Priority >= TicketPriority.High)
+                        {
+                            <span class="pill pillHigh">@ticket.Priority.GetDisplayName()</span>
+                        }
+                    </div>
+                    <time class="ticketTime" datetime="@ticket.CreatedAt.ToString("o")">
+                        Posted @ticket.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")
+                    </time>
+                </div>
 
-    <p class="empty-note">@tickets.Count ticket(s) shown.</p>
+                <h2 class="ticketSubject">@ticket.Title</h2>
+                <p class="ticketPreview">@ticket.Description</p>
+
+                <div class="ticketCardFoot">
+                    <div class="ticketMeta">
+                        <div class="requester">
+                            <span class="requesterAvatar" aria-hidden="true">
+                                <i class="bi bi-person-fill"></i>
+                            </span>
+                            <span class="requesterName">@(ticket.CreatedBy?.Name ?? "Removed user")</span>
+                        </div>
+                        @if (ticket.Category is not null)
+                        {
+                            <span class="categoryBadge">@ticket.Category.Name</span>
+                        }
+                        <span class="pill @StatusPillClass(ticket.Status)">@ticket.Status.GetDisplayName()</span>
+                    </div>
+                    <a class="openLink" href="@($"/tickets/{ticket.Id}")">Open ticket</a>
+                </div>
+            </li>
+        }
+    </ul>
+
+    <p class="empty-note ticketCount">@tickets.Count ticket(s) shown.</p>
 }
 
 @code {
@@ -172,6 +182,16 @@ else
     private string? errorMessage;
 
     private string sortValue = "CreatedAt-desc";
+    private TicketStatus? activeTab;
+
+    private static readonly (TicketStatus? Status, string Label, string Icon)[] StatusTabs =
+    {
+        (null, "All tickets", "bi-ui-checks-grid"),
+        (TicketStatus.Open, "Open", "bi-envelope"),
+        (TicketStatus.InProgress, "On-going", "bi-clock-history"),
+        (TicketStatus.Resolved, "Resolved", "bi-check-circle"),
+        (TicketStatus.Closed, "Closed", "bi-x-circle")
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -181,7 +201,6 @@ else
         currentUserId = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         isAdmin = state.User.IsInRole("Admin");
 
-        // RF07.2 and privacy: a standard user only ever sees their own requests.
         filter.RestrictToUserId = isAdmin ? null : currentUserId;
 
         categories = await CategoryService.GetAllAsync();
@@ -225,13 +244,6 @@ else
         await LoadAsync();
     }
 
-    private async Task OnStatusChangedAsync(ChangeEventArgs e)
-    {
-        var raw = e.Value?.ToString();
-        filter.Status = Enum.TryParse<TicketStatus>(raw, out var status) ? status : null;
-        await LoadAsync();
-    }
-
     private async Task OnCollaboratorChangedAsync(ChangeEventArgs e)
     {
         var raw = e.Value?.ToString();
@@ -250,6 +262,13 @@ else
         await LoadAsync();
     }
 
+    private async Task SetTabAsync(TicketStatus? status)
+    {
+        activeTab = status;
+        filter.Status = status;
+        await LoadAsync();
+    }
+
     private async Task ResetFiltersAsync()
     {
         filter.Search = null;
@@ -259,11 +278,21 @@ else
         filter.Sort = TicketSort.CreatedAt;
         filter.Descending = true;
         sortValue = "CreatedAt-desc";
+        activeTab = null;
 
         await LoadAsync();
     }
 
-    private static string StatusClass(TicketStatus status) => status switch
+    private static string StatusDotClass(TicketStatus status) => status switch
+    {
+        TicketStatus.Open => "dotOpen",
+        TicketStatus.InProgress => "dotInProgress",
+        TicketStatus.Resolved => "dotResolved",
+        TicketStatus.Closed => "dotClosed",
+        _ => "dotOpen"
+    };
+
+    private static string StatusPillClass(TicketStatus status) => status switch
     {
         TicketStatus.Open => "pill-open",
         TicketStatus.InProgress => "pill-progress",
