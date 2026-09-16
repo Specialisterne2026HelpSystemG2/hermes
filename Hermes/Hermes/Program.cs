@@ -11,7 +11,6 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddCascadingAuthenticationState();
-builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider,
     IdentityRevalidatingAuthenticationStateProvider>();
@@ -34,8 +33,6 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddEntityFrameworkStores<HermesContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
-
-builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
 var app = builder.Build();
 

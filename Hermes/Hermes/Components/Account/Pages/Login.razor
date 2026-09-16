@@ -1,7 +1,6 @@
 @page "/Account/Login"
 
 @using System.ComponentModel.DataAnnotations
-@using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
 
 @inject SignInManager<ApplicationUser> SignInManager
@@ -42,23 +41,10 @@
                 </div>
                 <div>
                     <p>
-                        <a href="Account/ForgotPassword">Forgot your password?</a>
-                    </p>
-                    <p>
                         <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register as a new user</a>
-                    </p>
-                    <p>
-                        <a href="Account/ResendEmailConfirmation">Resend email confirmation</a>
                     </p>
                 </div>
             </EditForm>
-        </section>
-    </div>
-    <div class="col-lg-4 col-lg-offset-2">
-        <section>
-            <h3>Use another service to log in.</h3>
-            <hr />
-            <ExternalLoginPicker />
         </section>
     </div>
 </div>
@@ -66,22 +52,15 @@
 @code {
     private string? errorMessage;
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
     [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
+    private InputModel Input { get; set; } = default!;
 
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        if (HttpMethods.IsGet(HttpContext.Request.Method))
-        {
-            // Clear the existing external cookie to ensure a clean login process
-            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
-        }
+        Input ??= new();
     }
 
     public async Task LoginUser()
@@ -93,12 +72,6 @@
         {
             Logger.LogInformation("User logged in.");
             RedirectManager.RedirectTo(ReturnUrl);
-        }
-        else if (result.RequiresTwoFactor)
-        {
-            RedirectManager.RedirectTo(
-                "Account/LoginWith2fa",
-                new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
         }
         else if (result.IsLockedOut)
         {
