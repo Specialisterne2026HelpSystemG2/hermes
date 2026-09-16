@@ -1,0 +1,290 @@
+@* RF06 — category listing, creation and duplicate validation. *@
+@page "/categories"
+@using Hermes.Common
+@using Hermes.Data
+@using Hermes.Models
+@using Hermes.Services
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@implements IDisposable
+@inject ICategoryService CategoryService
+
+<PageTitle>Categories</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Categories</h1>
+        <p class="page-subtitle">Every ticket is filed under one of these.</p>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(feedback))
+{
+    <div class="banner banner-success" role="status">
+        <span>@feedback</span>
+        <button type="button" class="banner-close" aria-label="Dismiss message"
+                @onclick="() => feedback = null">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="banner banner-danger" role="alert">@errorMessage</div>
+}
+
+<div class="category-grid">
+    <div class="form-card">
+        <h2 class="card-heading">@(model.Id is null ? "New category" : $"Editing #{model.Id}")</h2>
+
+        @if (editContext is not null)
+        {
+            <EditForm EditContext="editContext" OnValidSubmit="SaveAsync" novalidate>
+                <DataAnnotationsValidator />
+
+                <div class="field">
+                    <label class="field-label" for="name">
+                        Name <span class="field-required" aria-hidden="true">*</span>
+                    </label>
+                    <InputText id="name" class="text-input" @bind-Value="model.Name"
+                               placeholder="Hardware, Access, Billing…" aria-required="true" />
+                    <ValidationMessage For="@(() => model.Name)" class="field-error" />
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" disabled="@saving">
+                        @(saving ? "Saving…" : model.Id is null ? "Add category" : "Save changes")
+                    </button>
+                    @if (model.Id is not null)
+                    {
+                        <button type="button" class="btn btn-ghost" @onclick="ResetForm">Cancel</button>
+                    }
+                </div>
+            </EditForm>
+        }
+    </div>
+
+    <div class="list-card">
+        @if (loading)
+        {
+            <p class="empty-note">Loading…</p>
+        }
+        else if (categories.Count == 0)
+        {
+            <div class="banner banner-info" role="status">No categories yet.</div>
+        }
+        else
+        {
+            <table class="data-table">
+                <caption class="visually-hidden">Ticket categories.</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col" class="col-created">Created</th>
+                        <th scope="col" class="col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var category in categories)
+                    {
+                        <tr @key="category.Id">
+                            <td>@category.Name</td>
+                            <td class="col-created">
+                                @category.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")
+                            </td>
+                            <td class="col-actions">
+                                <button type="button" class="btn btn-ghost btn-sm"
+                                        @onclick="() => StartEdit(category)">
+                                    Edit
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm"
+                                        @onclick="() => AskForDeletion(category)">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@if (pendingDeletion is not null)
+{
+    <div class="dialog-backdrop"></div>
+    <div class="dialog-wrap" role="dialog" aria-modal="true" aria-labelledby="deleteTitle">
+        <div class="dialog">
+            <div class="dialog-head">
+                <h2 class="dialog-title" id="deleteTitle">Confirm deletion</h2>
+                <button type="button" class="banner-close" aria-label="Cancel"
+                        @onclick="() => pendingDeletion = null">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="dialog-body">
+                <p>Delete the category <strong>@pendingDeletion.Name</strong>?</p>
+            </div>
+            <div class="dialog-foot">
+                <button type="button" class="btn btn-ghost" @onclick="() => pendingDeletion = null">
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-danger" @onclick="DeleteConfirmedAsync"
+                        disabled="@deleting">
+                    @(deleting ? "Deleting…" : "Delete")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private CategoryFormModel model = new();
+    private EditContext? editContext;
+    private ValidationMessageStore? messageStore;
+
+    private IReadOnlyList<Category> categories = Array.Empty<Category>();
+    private Category? pendingDeletion;
+
+    private bool loading = true;
+    private bool saving;
+    private bool deleting;
+    private string? feedback;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        BuildEditContext();
+        await LoadAsync();
+    }
+
+    private void BuildEditContext()
+    {
+        if (editContext is not null)
+        {
+            editContext.OnFieldChanged -= HandleFieldChanged;
+        }
+
+        editContext = new EditContext(model);
+        messageStore = new ValidationMessageStore(editContext);
+        editContext.OnFieldChanged += HandleFieldChanged;
+    }
+
+    private void HandleFieldChanged(object? sender, FieldChangedEventArgs e)
+    {
+        messageStore?.Clear(e.FieldIdentifier);
+        editContext?.NotifyValidationStateChanged();
+    }
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        try
+        {
+            categories = await CategoryService.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load the categories: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (editContext is null || messageStore is null)
+        {
+            return;
+        }
+
+        saving = true;
+        errorMessage = null;
+        messageStore.Clear();
+        editContext.NotifyValidationStateChanged();
+
+        var result = model.Id is null
+            ? await CategoryService.CreateAsync(model)
+            : await CategoryService.UpdateAsync(model);
+
+        saving = false;
+
+        if (result.Succeeded)
+        {
+            feedback = model.Id is null ? "Category added." : "Category updated.";
+            ResetForm();
+            await LoadAsync();
+            return;
+        }
+
+        // RF06.2 — the duplicate message lands on the Name field.
+        foreach (var fieldError in result.FieldErrors)
+        {
+            messageStore.Add(editContext.Field(fieldError.Key), fieldError.Value);
+        }
+
+        editContext.NotifyValidationStateChanged();
+
+        if (result.FieldErrors.Count == 0)
+        {
+            errorMessage = result.ErrorMessage;
+        }
+    }
+
+    private void StartEdit(Category category)
+    {
+        model = new CategoryFormModel { Id = category.Id, Name = category.Name };
+        BuildEditContext();
+        feedback = null;
+        errorMessage = null;
+    }
+
+    private void ResetForm()
+    {
+        model = new CategoryFormModel();
+        BuildEditContext();
+    }
+
+    private void AskForDeletion(Category category)
+    {
+        feedback = null;
+        errorMessage = null;
+        pendingDeletion = category;
+    }
+
+    private async Task DeleteConfirmedAsync()
+    {
+        if (pendingDeletion is null)
+        {
+            return;
+        }
+
+        deleting = true;
+        var name = pendingDeletion.Name;
+        var result = await CategoryService.DeleteAsync(pendingDeletion.Id);
+        deleting = false;
+        pendingDeletion = null;
+
+        if (result.Succeeded)
+        {
+            feedback = $"Category \"{name}\" deleted.";
+        }
+        else
+        {
+            errorMessage = result.ErrorMessage;
+        }
+
+        await LoadAsync();
+    }
+
+    public void Dispose()
+    {
+        if (editContext is not null)
+        {
+            editContext.OnFieldChanged -= HandleFieldChanged;
+        }
+    }
+}

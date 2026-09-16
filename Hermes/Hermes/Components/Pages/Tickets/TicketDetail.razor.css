@@ -1,0 +1,144 @@
+.detail-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 18px;
+    align-items: start;
+}
+
+.detail-main,
+.detail-side {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: 0;
+}
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.card-heading {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--card-title);
+    margin: 0 0 14px;
+}
+
+.body-text {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    margin: 0;
+}
+
+.reply-list {
+    list-style: none;
+    margin: 0 0 18px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.reply {
+    border: 1px solid var(--border-subtle);
+    border-left: 3px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: var(--surface-muted);
+}
+
+.reply-owner {
+    border-left-color: var(--primary);
+}
+
+.reply-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.reply-author {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.reply-time {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.reply-form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border-top: 1px solid var(--border-subtle);
+    padding-top: 16px;
+}
+
+.textarea {
+    resize: vertical;
+    min-height: 90px;
+    font-family: inherit;
+    line-height: 1.55;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.meta {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 14px;
+    margin: 0;
+    font-size: 13px;
+}
+
+.meta dt {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.meta dd {
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.resolve-button {
+    margin-top: 12px;
+    width: 100%;
+}
+
+.pill-open {
+    background: var(--primary-subtle);
+    color: var(--primary);
+}
+
+.pill-progress {
+    background: var(--secondary-subtle);
+    color: var(--secondary);
+}
+
+.pill-resolved {
+    background: var(--success-subtle);
+    color: var(--success-strong);
+}
+
+@media (max-width: 860px) {
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
