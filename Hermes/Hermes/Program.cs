@@ -37,6 +37,9 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddClaimsPrincipalFactory<ApplicationUserClaimsPrincipalFactory>();
 
 builder.Services.AddScoped<IUserService, IdentityUserService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<ITicketService, TicketService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 var app = builder.Build();
 

@@ -1,0 +1,222 @@
+@page "/tickets/new"
+@using System.Security.Claims
+@using Hermes.Common
+@using Hermes.Data
+@using Hermes.Models
+@using Hermes.Services
+@attribute [Authorize]
+@rendermode InteractiveServer
+@implements IDisposable
+@inject ITicketService TicketService
+@inject ICategoryService CategoryService
+@inject IUserService UserService
+@inject NavigationManager Navigation
+
+<PageTitle>New ticket</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">New ticket</h1>
+        <p class="page-subtitle">Describe the problem and choose where it belongs.</p>
+    </div>
+</div>
+
+@if (categories.Count == 0 && !loading)
+{
+    <div class="banner banner-danger" role="alert">
+        There are no categories yet, so a ticket cannot be filed. An administrator has to create one first.
+    </div>
+    <a class="btn btn-ghost" href="/tickets">Back to the list</a>
+}
+else if (editContext is null)
+{
+    <p class="empty-note">Loading…</p>
+}
+else
+{
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="banner banner-danger" role="alert">@errorMessage</div>
+    }
+
+    <EditForm EditContext="editContext" OnValidSubmit="HandleValidSubmitAsync" novalidate>
+        <DataAnnotationsValidator />
+
+        <div class="form-card">
+            <div class="form-grid">
+                <div class="field span-2">
+                    <label class="field-label" for="title">
+                        Title <span class="field-required" aria-hidden="true">*</span>
+                    </label>
+                    <InputText id="title" class="text-input" @bind-Value="model.Title"
+                               placeholder="Short summary of the problem" aria-required="true" />
+                    <ValidationMessage For="@(() => model.Title)" class="field-error" />
+                </div>
+
+                <div class="field span-2">
+                    <label class="field-label" for="description">
+                        Description <span class="field-required" aria-hidden="true">*</span>
+                    </label>
+                    <InputTextArea id="description" class="text-input textarea" rows="6"
+                                   @bind-Value="model.Description"
+                                   placeholder="What happened, what you expected, and any steps to reproduce"
+                                   aria-required="true" />
+                    <ValidationMessage For="@(() => model.Description)" class="field-error" />
+                </div>
+
+                <div class="field">
+                    <label class="field-label" for="category">
+                        Category <span class="field-required" aria-hidden="true">*</span>
+                    </label>
+                    <InputSelect id="category" class="select-input" @bind-Value="model.CategoryId">
+                        <option value="">-- Select --</option>
+                        @foreach (var category in categories)
+                        {
+                            <option value="@category.Id">@category.Name</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => model.CategoryId)" class="field-error" />
+                </div>
+
+                <div class="field">
+                    <label class="field-label" for="priority">
+                        Priority <span class="field-required" aria-hidden="true">*</span>
+                    </label>
+                    <InputSelect id="priority" class="select-input" @bind-Value="model.Priority">
+                        <option value="">-- Select --</option>
+                        @foreach (var priority in Enum.GetValues<TicketPriority>())
+                        {
+                            <option value="@priority">@priority.GetDisplayName()</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => model.Priority)" class="field-error" />
+                </div>
+
+                @if (isAdmin)
+                {
+                    <div class="field span-2">
+                        <label class="field-label" for="assignee">Assign to</label>
+                        <InputSelect id="assignee" class="select-input" @bind-Value="model.AssignedToId">
+                            <option value="">Nobody yet</option>
+                            @foreach (var user in assignees)
+                            {
+                                <option value="@user.Id">@user.Name</option>
+                            }
+                        </InputSelect>
+                    </div>
+                }
+
+                <div class="field span-2 form-actions">
+                    <button type="submit" class="btn btn-primary" disabled="@saving">
+                        @(saving ? "Saving…" : "Create ticket")
+                    </button>
+                    <a class="btn btn-ghost" href="/tickets">Cancel</a>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    private readonly TicketFormModel model = new();
+
+    private EditContext? editContext;
+    private ValidationMessageStore? messageStore;
+
+    private IReadOnlyList<Category> categories = Array.Empty<Category>();
+    private IReadOnlyList<ApplicationUser> assignees = Array.Empty<ApplicationUser>();
+
+    private string? currentUserId;
+    private bool isAdmin;
+    private bool loading = true;
+    private bool saving;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState;
+        currentUserId = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        isAdmin = state.User.IsInRole("Admin");
+
+        categories = await CategoryService.GetAllAsync();
+
+        if (isAdmin)
+        {
+            assignees = await UserService.GetAllAsync();
+        }
+
+        loading = false;
+
+        if (categories.Count == 0)
+        {
+            return;
+        }
+
+        editContext = new EditContext(model);
+        messageStore = new ValidationMessageStore(editContext);
+        editContext.OnFieldChanged += HandleFieldChanged;
+    }
+
+    private void HandleFieldChanged(object? sender, FieldChangedEventArgs e)
+    {
+        messageStore?.Clear(e.FieldIdentifier);
+        editContext?.NotifyValidationStateChanged();
+    }
+
+    private async Task HandleValidSubmitAsync()
+    {
+        if (editContext is null || messageStore is null || string.IsNullOrWhiteSpace(currentUserId))
+        {
+            errorMessage = "Your session has expired. Sign in again.";
+            return;
+        }
+
+        saving = true;
+        errorMessage = null;
+        messageStore.Clear();
+        editContext.NotifyValidationStateChanged();
+
+        OperationResult<Ticket> result;
+        try
+        {
+            result = await TicketService.CreateAsync(model, currentUserId);
+        }
+        catch (Exception ex)
+        {
+            saving = false;
+            errorMessage = $"Unexpected error while saving: {ex.Message}";
+            return;
+        }
+
+        saving = false;
+
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo($"/tickets/{result.Value!.Id}");
+            return;
+        }
+
+        foreach (var fieldError in result.FieldErrors)
+        {
+            messageStore.Add(editContext.Field(fieldError.Key), fieldError.Value);
+        }
+
+        editContext.NotifyValidationStateChanged();
+
+        if (result.FieldErrors.Count == 0)
+        {
+            errorMessage = result.ErrorMessage ?? "Could not create the ticket.";
+        }
+    }
+
+    public void Dispose()
+    {
+        if (editContext is not null)
+        {
+            editContext.OnFieldChanged -= HandleFieldChanged;
+        }
+    }
+}

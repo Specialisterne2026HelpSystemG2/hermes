@@ -12,10 +12,21 @@ public static class SeedData
     private const string AdminPassword = "Admin123!";
     private const string AdminName = "Hermes Administrator";
 
+    private static readonly string[] DefaultCategories =
+    [
+        "Hardware",
+        "Software",
+        "Network",
+        "Access and permissions",
+        "Other"
+    ];
+
     public static async Task InitializeAsync(IServiceProvider services)
     {
         var context = services.GetRequiredService<HermesContext>();
         await context.Database.MigrateAsync();
+
+        await SeedCategoriesAsync(context);
 
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
         if (!await roleManager.RoleExistsAsync(AdminRole))
@@ -62,5 +73,19 @@ public static class SeedData
         }
 
         await userManager.AddToRoleAsync(admin, AdminRole);
+    }
+
+    /// <summary>A ticket cannot be filed without a category, so ship a starting set.</summary>
+    private static async Task SeedCategoriesAsync(HermesContext context)
+    {
+        if (await context.Categories.AnyAsync())
+        {
+            return;
+        }
+
+        context.Categories.AddRange(
+            DefaultCategories.Select(name => new Category { Name = name, CreatedAt = DateTime.UtcNow }));
+
+        await context.SaveChangesAsync();
     }
 }

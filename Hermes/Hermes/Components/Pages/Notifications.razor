@@ -1,0 +1,107 @@
+@* RF04.3 — reply notifications for the collaborator. *@
+@page "/notifications"
+@using System.Security.Claims
+@using Hermes.Data
+@using Hermes.Services
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject INotificationService NotificationService
+@inject NavigationManager Navigation
+
+<PageTitle>Notifications</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Notifications</h1>
+        <p class="page-subtitle">Replies on the tickets you are part of.</p>
+    </div>
+    <div class="page-actions">
+        @if (notifications.Any(n => !n.IsRead))
+        {
+            <button type="button" class="btn btn-ghost" @onclick="MarkAllAsReadAsync">
+                Mark all as read
+            </button>
+        }
+    </div>
+</div>
+
+@if (loading)
+{
+    <p class="empty-note">Loading…</p>
+}
+else if (notifications.Count == 0)
+{
+    <div class="banner banner-info" role="status">Nothing to read.</div>
+}
+else
+{
+    <ul class="notification-list">
+        @foreach (var notification in notifications)
+        {
+            <li class="notification @(notification.IsRead ? "" : "notification-unread")"
+                @key="notification.Id">
+                <div class="notification-body">
+                    <p class="notification-message">@notification.Message</p>
+                    <span class="notification-time">
+                        @notification.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")
+                    </span>
+                </div>
+                <button type="button" class="btn btn-ghost btn-sm"
+                        @onclick="() => OpenAsync(notification)">
+                    Open ticket
+                </button>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    private IReadOnlyList<Notification> notifications = Array.Empty<Notification>();
+    private string? currentUserId;
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState;
+        currentUserId = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            loading = false;
+            return;
+        }
+
+        loading = true;
+        notifications = await NotificationService.GetForUserAsync(currentUserId);
+        loading = false;
+    }
+
+    private async Task OpenAsync(Notification notification)
+    {
+        if (!string.IsNullOrWhiteSpace(currentUserId))
+        {
+            await NotificationService.MarkAsReadAsync(notification.Id, currentUserId);
+        }
+
+        Navigation.NavigateTo($"/tickets/{notification.TicketId}");
+    }
+
+    private async Task MarkAllAsReadAsync()
+    {
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return;
+        }
+
+        await NotificationService.MarkAllAsReadAsync(currentUserId);
+        await LoadAsync();
+    }
+}

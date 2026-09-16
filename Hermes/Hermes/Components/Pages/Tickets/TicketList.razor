@@ -1,0 +1,281 @@
+@* RF05 — ticket listing with filters and ordering. *@
+@page "/tickets"
+@using System.Security.Claims
+@using Hermes.Common
+@using Hermes.Data
+@using Hermes.Models
+@using Hermes.Services
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject ITicketService TicketService
+@inject ICategoryService CategoryService
+@inject IUserService UserService
+
+<PageTitle>Tickets</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Tickets</h1>
+        <p class="page-subtitle">
+            @(isAdmin ? "Every request raised in Hermes." : "The requests you have raised.")
+        </p>
+    </div>
+    <div class="page-actions">
+        <a class="btn btn-primary" href="/tickets/new">New ticket</a>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(feedback))
+{
+    <div class="banner banner-success" role="status">
+        <span>@feedback</span>
+        <button type="button" class="banner-close" aria-label="Dismiss message"
+                @onclick="() => feedback = null">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="banner banner-danger" role="alert">@errorMessage</div>
+}
+
+<div class="filter-bar">
+    <div class="filter">
+        <label class="field-label" for="search">Search</label>
+        <input id="search" class="text-input" type="search" placeholder="Title or description"
+               value="@filter.Search" @oninput="OnSearchChangedAsync" />
+    </div>
+
+    <div class="filter">
+        <label class="field-label" for="category">Category</label>
+        <select id="category" class="select-input" value="@(filter.CategoryId?.ToString() ?? "")"
+                @onchange="OnCategoryChangedAsync">
+            <option value="">All</option>
+            @foreach (var category in categories)
+            {
+                <option value="@category.Id">@category.Name</option>
+            }
+        </select>
+    </div>
+
+    <div class="filter">
+        <label class="field-label" for="status">Status</label>
+        <select id="status" class="select-input" value="@(filter.Status?.ToString() ?? "")"
+                @onchange="OnStatusChangedAsync">
+            <option value="">All</option>
+            @foreach (var status in Enum.GetValues<TicketStatus>())
+            {
+                <option value="@status">@status.GetDisplayName()</option>
+            }
+        </select>
+    </div>
+
+    @if (isAdmin)
+    {
+        <div class="filter">
+            <label class="field-label" for="collaborator">Collaborator</label>
+            <select id="collaborator" class="select-input" value="@(filter.CollaboratorId ?? "")"
+                    @onchange="OnCollaboratorChangedAsync">
+                <option value="">All</option>
+                @foreach (var user in collaborators)
+                {
+                    <option value="@user.Id">@user.Name</option>
+                }
+            </select>
+        </div>
+    }
+
+    <div class="filter">
+        <label class="field-label" for="sort">Sort by</label>
+        <select id="sort" class="select-input" value="@sortValue" @onchange="OnSortChangedAsync">
+            <option value="CreatedAt-desc">Newest first</option>
+            <option value="CreatedAt-asc">Oldest first</option>
+            <option value="Priority-desc">Highest priority</option>
+            <option value="Priority-asc">Lowest priority</option>
+        </select>
+    </div>
+
+    <div class="filter filter-reset">
+        <button type="button" class="btn btn-ghost" @onclick="ResetFiltersAsync">Clear</button>
+    </div>
+</div>
+
+@if (loading)
+{
+    <p class="empty-note">Loading…</p>
+}
+else if (tickets.Count == 0)
+{
+    <div class="banner banner-info" role="status">No tickets match these filters.</div>
+}
+else
+{
+    <div class="table-card">
+        <table class="data-table">
+            <caption class="visually-hidden">
+                Tickets with category, status, priority, collaborator and creation date.
+            </caption>
+            <thead>
+                <tr>
+                    <th scope="col" class="col-id">#</th>
+                    <th scope="col">Title</th>
+                    <th scope="col">Category</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Priority</th>
+                    <th scope="col">Collaborator</th>
+                    <th scope="col" class="col-created">Created</th>
+                    <th scope="col" class="col-actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var ticket in tickets)
+                {
+                    <tr @key="ticket.Id">
+                        <td class="col-id">@ticket.Id</td>
+                        <td>@ticket.Title</td>
+                        <td>@(ticket.Category?.Name ?? "—")</td>
+                        <td><span class="pill @StatusClass(ticket.Status)">@ticket.Status.GetDisplayName()</span></td>
+                        <td><span class="pill @PriorityClass(ticket.Priority)">@ticket.Priority.GetDisplayName()</span></td>
+                        <td>@(ticket.CreatedBy?.Name ?? "Removed user")</td>
+                        <td class="col-created">@ticket.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</td>
+                        <td class="col-actions">
+                            <a class="btn btn-ghost btn-sm" href="@($"/tickets/{ticket.Id}")">Open</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <p class="empty-note">@tickets.Count ticket(s) shown.</p>
+}
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    [SupplyParameterFromQuery(Name = "success")]
+    public string? SuccessFromQuery { get; set; }
+
+    private readonly TicketFilter filter = new();
+
+    private IReadOnlyList<Ticket> tickets = Array.Empty<Ticket>();
+    private IReadOnlyList<Category> categories = Array.Empty<Category>();
+    private IReadOnlyList<ApplicationUser> collaborators = Array.Empty<ApplicationUser>();
+
+    private string? currentUserId;
+    private bool isAdmin;
+    private bool loading = true;
+    private string? feedback;
+    private string? errorMessage;
+
+    private string sortValue = "CreatedAt-desc";
+
+    protected override async Task OnInitializedAsync()
+    {
+        feedback = SuccessFromQuery;
+
+        var state = await AuthState;
+        currentUserId = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        isAdmin = state.User.IsInRole("Admin");
+
+        // RF07.2 and privacy: a standard user only ever sees their own requests.
+        filter.RestrictToUserId = isAdmin ? null : currentUserId;
+
+        categories = await CategoryService.GetAllAsync();
+
+        if (isAdmin)
+        {
+            collaborators = await UserService.GetAllAsync();
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        try
+        {
+            tickets = await TicketService.GetAllAsync(filter);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load the tickets: {ex.Message}";
+            tickets = Array.Empty<Ticket>();
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task OnSearchChangedAsync(ChangeEventArgs e)
+    {
+        filter.Search = e.Value?.ToString();
+        await LoadAsync();
+    }
+
+    private async Task OnCategoryChangedAsync(ChangeEventArgs e)
+    {
+        var raw = e.Value?.ToString();
+        filter.CategoryId = int.TryParse(raw, out var id) ? id : null;
+        await LoadAsync();
+    }
+
+    private async Task OnStatusChangedAsync(ChangeEventArgs e)
+    {
+        var raw = e.Value?.ToString();
+        filter.Status = Enum.TryParse<TicketStatus>(raw, out var status) ? status : null;
+        await LoadAsync();
+    }
+
+    private async Task OnCollaboratorChangedAsync(ChangeEventArgs e)
+    {
+        var raw = e.Value?.ToString();
+        filter.CollaboratorId = string.IsNullOrWhiteSpace(raw) ? null : raw;
+        await LoadAsync();
+    }
+
+    private async Task OnSortChangedAsync(ChangeEventArgs e)
+    {
+        sortValue = e.Value?.ToString() ?? "CreatedAt-desc";
+
+        var parts = sortValue.Split('-');
+        filter.Sort = parts[0] == nameof(TicketSort.Priority) ? TicketSort.Priority : TicketSort.CreatedAt;
+        filter.Descending = parts.Length < 2 || parts[1] == "desc";
+
+        await LoadAsync();
+    }
+
+    private async Task ResetFiltersAsync()
+    {
+        filter.Search = null;
+        filter.CategoryId = null;
+        filter.Status = null;
+        filter.CollaboratorId = null;
+        filter.Sort = TicketSort.CreatedAt;
+        filter.Descending = true;
+        sortValue = "CreatedAt-desc";
+
+        await LoadAsync();
+    }
+
+    private static string StatusClass(TicketStatus status) => status switch
+    {
+        TicketStatus.Open => "pill-open",
+        TicketStatus.InProgress => "pill-progress",
+        TicketStatus.Resolved => "pill-resolved",
+        _ => "pill-inactive"
+    };
+
+    private static string PriorityClass(TicketPriority priority) => priority switch
+    {
+        TicketPriority.Urgent => "pill-urgent",
+        TicketPriority.High => "pill-high",
+        TicketPriority.Low => "pill-inactive",
+        _ => "pill-normal"
+    };
+}

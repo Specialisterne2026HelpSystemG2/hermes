@@ -1,0 +1,298 @@
+@* RF04.1, RF04.2 — reply area. RF07 — resolve, restricted to the requester. *@
+@page "/tickets/{Id:int}"
+@using System.Security.Claims
+@using Hermes.Common
+@using Hermes.Data
+@using Hermes.Models
+@using Hermes.Services
+@attribute [Authorize]
+@rendermode InteractiveServer
+@inject ITicketService TicketService
+
+<PageTitle>@(ticket is null ? "Ticket" : $"#{ticket.Id} {ticket.Title}")</PageTitle>
+
+@if (loading)
+{
+    <p class="empty-note">Loading…</p>
+}
+else if (ticket is null)
+{
+    <div class="banner banner-danger" role="alert">Ticket not found.</div>
+    <a class="btn btn-ghost" href="/tickets">Back to the list</a>
+}
+else if (!CanView)
+{
+    <div class="banner banner-danger" role="alert">
+        You can only open tickets that you raised.
+    </div>
+    <a class="btn btn-ghost" href="/tickets">Back to the list</a>
+}
+else
+{
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">#@ticket.Id — @ticket.Title</h1>
+            <p class="page-subtitle">
+                Raised by @(ticket.CreatedBy?.Name ?? "a removed user")
+                on @ticket.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")
+            </p>
+        </div>
+        <div class="page-actions">
+            <a class="btn btn-ghost" href="/tickets">Back</a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(feedback))
+    {
+        <div class="banner banner-success" role="status">
+            <span>@feedback</span>
+            <button type="button" class="banner-close" aria-label="Dismiss message"
+                    @onclick="() => feedback = null">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="banner banner-danger" role="alert">@errorMessage</div>
+    }
+
+    <div class="detail-grid">
+        <div class="detail-main">
+            <article class="card">
+                <h2 class="card-heading">Description</h2>
+                <p class="body-text">@ticket.Description</p>
+            </article>
+
+            @* ---------- RF04.1 / RF04.2 ---------- *@
+            <section class="card">
+                <h2 class="card-heading">Replies (@ticket.Replies.Count)</h2>
+
+                @if (ticket.Replies.Count == 0)
+                {
+                    <p class="empty-note">No replies yet.</p>
+                }
+                else
+                {
+                    <ol class="reply-list">
+                        @foreach (var reply in ticket.Replies)
+                        {
+                            <li class="reply @(reply.AuthorId == ticket.CreatedById ? "reply-owner" : "")"
+                                @key="reply.Id">
+                                <div class="reply-head">
+                                    <span class="reply-author">@(reply.Author?.Name ?? "Removed user")</span>
+                                    <span class="reply-time">
+                                        @reply.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")
+                                    </span>
+                                </div>
+                                <p class="body-text">@reply.Body</p>
+                            </li>
+                        }
+                    </ol>
+                }
+
+                @if (ticket.Status == TicketStatus.Closed)
+                {
+                    <p class="empty-note">This ticket is closed, so no further replies can be added.</p>
+                }
+                else
+                {
+                    <EditForm Model="replyModel" OnValidSubmit="SendReplyAsync" novalidate class="reply-form">
+                        <DataAnnotationsValidator />
+
+                        <label class="field-label" for="reply">Add a reply</label>
+                        <InputTextArea id="reply" class="text-input textarea" rows="4"
+                                       @bind-Value="replyModel.Body"
+                                       placeholder="Write your reply" />
+                        <ValidationMessage For="@(() => replyModel.Body)" class="field-error" />
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary" disabled="@sending">
+                                @(sending ? "Sending…" : "Send reply")
+                            </button>
+                        </div>
+                    </EditForm>
+                }
+            </section>
+        </div>
+
+        <aside class="detail-side">
+            <div class="card">
+                <h2 class="card-heading">Details</h2>
+                <dl class="meta">
+                    <dt>Status</dt>
+                    <dd><span class="pill @StatusClass(ticket.Status)">@ticket.Status.GetDisplayName()</span></dd>
+
+                    <dt>Priority</dt>
+                    <dd>@ticket.Priority.GetDisplayName()</dd>
+
+                    <dt>Category</dt>
+                    <dd>@(ticket.Category?.Name ?? "—")</dd>
+
+                    <dt>Assigned to</dt>
+                    <dd>@(ticket.AssignedTo?.Name ?? "Nobody")</dd>
+
+                    @if (ticket.ResolvedAt is not null)
+                    {
+                        <dt>Resolved</dt>
+                        <dd>@ticket.ResolvedAt.Value.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</dd>
+                    }
+                </dl>
+            </div>
+
+            @* ---------- RF07 ---------- *@
+            <div class="card">
+                <h2 class="card-heading">Status</h2>
+
+                @if (IsOwner)
+                {
+                    <label class="field-label" for="status">Change status</label>
+                    <select id="status" class="select-input" value="@ticket.Status"
+                            @onchange="ChangeStatusAsync" disabled="@changingStatus">
+                        @foreach (var status in Enum.GetValues<TicketStatus>())
+                        {
+                            <option value="@status">@status.GetDisplayName()</option>
+                        }
+                    </select>
+
+                    @if (ticket.Status != TicketStatus.Resolved && ticket.Status != TicketStatus.Closed)
+                    {
+                        <button type="button" class="btn btn-primary resolve-button"
+                                disabled="@changingStatus"
+                                @onclick="() => SetStatusAsync(TicketStatus.Resolved)">
+                            Mark as resolved
+                        </button>
+                    }
+                }
+                else
+                {
+                    <p class="empty-note">
+                        Only @(ticket.CreatedBy?.Name ?? "the collaborator who raised this ticket")
+                        can change the status.
+                    </p>
+                }
+            </div>
+        </aside>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    private Ticket? ticket;
+    private ReplyFormModel replyModel = new();
+
+    private string? currentUserId;
+    private bool isAdmin;
+    private bool loading = true;
+    private bool sending;
+    private bool changingStatus;
+    private string? feedback;
+    private string? errorMessage;
+
+    private bool IsOwner => ticket?.CreatedById is not null && ticket.CreatedById == currentUserId;
+
+    private bool IsAssignee => ticket?.AssignedToId is not null && ticket.AssignedToId == currentUserId;
+
+    private bool CanView => isAdmin || IsOwner || IsAssignee;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState;
+        currentUserId = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        isAdmin = state.User.IsInRole("Admin");
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        try
+        {
+            ticket = await TicketService.GetByIdAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Could not load the ticket: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task SendReplyAsync()
+    {
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            errorMessage = "Your session has expired. Sign in again.";
+            return;
+        }
+
+        sending = true;
+        errorMessage = null;
+
+        var result = await TicketService.AddReplyAsync(Id, replyModel, currentUserId);
+
+        sending = false;
+
+        if (result.Succeeded)
+        {
+            replyModel = new ReplyFormModel();
+            feedback = "Reply sent.";
+            await LoadAsync();
+        }
+        else
+        {
+            errorMessage = result.ErrorMessage;
+        }
+    }
+
+    private async Task ChangeStatusAsync(ChangeEventArgs e)
+    {
+        if (Enum.TryParse<TicketStatus>(e.Value?.ToString(), out var status))
+        {
+            await SetStatusAsync(status);
+        }
+    }
+
+    private async Task SetStatusAsync(TicketStatus status)
+    {
+        if (string.IsNullOrWhiteSpace(currentUserId))
+        {
+            return;
+        }
+
+        changingStatus = true;
+        errorMessage = null;
+
+        var result = await TicketService.ChangeStatusAsync(Id, status, currentUserId);
+
+        changingStatus = false;
+
+        if (result.Succeeded)
+        {
+            feedback = $"Status changed to {status.GetDisplayName()}.";
+        }
+        else
+        {
+            errorMessage = result.ErrorMessage;
+        }
+
+        await LoadAsync();
+    }
+
+    private static string StatusClass(TicketStatus status) => status switch
+    {
+        TicketStatus.Open => "pill-open",
+        TicketStatus.InProgress => "pill-progress",
+        TicketStatus.Resolved => "pill-resolved",
+        _ => "pill-inactive"
+    };
+}
