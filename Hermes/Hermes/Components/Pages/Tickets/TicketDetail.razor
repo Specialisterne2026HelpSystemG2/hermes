@@ -31,14 +31,12 @@ else
 {
     <div class="page-header">
         <div>
-            <h1 class="page-title">#@ticket.Id — @ticket.Title</h1>
-            <p class="page-subtitle">
-                Raised by @(ticket.CreatedBy?.Name ?? "a removed user")
-                on @ticket.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")
-            </p>
+            <h1 class="page-title">Tickets</h1>
         </div>
         <div class="page-actions">
-            <a class="btn btn-ghost" href="/tickets">Back</a>
+            <a class="btn btn-ghost" href="/tickets">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i> Back to list
+            </a>
         </div>
     </div>
 
@@ -58,123 +56,128 @@ else
         <div class="banner banner-danger" role="alert">@errorMessage</div>
     }
 
-    <div class="detail-grid">
-        <div class="detail-main">
-            <article class="card">
-                <h2 class="card-heading">Description</h2>
-                <p class="body-text">@ticket.Description</p>
-            </article>
-
-            @* ---------- RF04.1 / RF04.2 ---------- *@
-            <section class="card">
-                <h2 class="card-heading">Replies (@ticket.Replies.Count)</h2>
-
-                @if (ticket.Replies.Count == 0)
+    @* ── Ticket card (header + description + replies) ── *@
+    <article class="ticketCard">
+        <header class="ticketHead">
+            <div class="ticketIdRow">
+                <span class="statusDot @StatusDotClass(ticket.Status)" aria-hidden="true"></span>
+                <span class="ticketLabel">Ticket# @ticket.Id</span>
+                <span class="pill @StatusPillClass(ticket.Status)">@ticket.Status.GetDisplayName()</span>
+                @if (ticket.Priority >= TicketPriority.High)
                 {
-                    <p class="empty-note">No replies yet.</p>
+                    <span class="pill pillHigh">@ticket.Priority.GetDisplayName()</span>
                 }
-                else
-                {
-                    <ol class="reply-list">
-                        @foreach (var reply in ticket.Replies)
-                        {
-                            <li class="reply @(reply.AuthorId == ticket.CreatedById ? "reply-owner" : "")"
-                                @key="reply.Id">
-                                <div class="reply-head">
-                                    <span class="reply-author">@(reply.Author?.Name ?? "Removed user")</span>
-                                    <span class="reply-time">
-                                        @reply.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")
-                                    </span>
-                                </div>
-                                <p class="body-text">@reply.Body</p>
-                            </li>
-                        }
-                    </ol>
-                }
-
-                @if (ticket.Status == TicketStatus.Closed)
-                {
-                    <p class="empty-note">This ticket is closed, so no further replies can be added.</p>
-                }
-                else
-                {
-                    <EditForm Model="replyModel" OnValidSubmit="SendReplyAsync" novalidate class="reply-form">
-                        <DataAnnotationsValidator />
-
-                        <label class="field-label" for="reply">Add a reply</label>
-                        <InputTextArea id="reply" class="text-input textarea" rows="4"
-                                       @bind-Value="replyModel.Body"
-                                       placeholder="Write your reply" />
-                        <ValidationMessage For="@(() => replyModel.Body)" class="field-error" />
-
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn-primary" disabled="@sending">
-                                @(sending ? "Sending…" : "Send reply")
-                            </button>
-                        </div>
-                    </EditForm>
-                }
-            </section>
-        </div>
-
-        <aside class="detail-side">
-            <div class="card">
-                <h2 class="card-heading">Details</h2>
-                <dl class="meta">
-                    <dt>Status</dt>
-                    <dd><span class="pill @StatusClass(ticket.Status)">@ticket.Status.GetDisplayName()</span></dd>
-
-                    <dt>Priority</dt>
-                    <dd>@ticket.Priority.GetDisplayName()</dd>
-
-                    <dt>Category</dt>
-                    <dd>@(ticket.Category?.Name ?? "—")</dd>
-
-                    <dt>Assigned to</dt>
-                    <dd>@(ticket.AssignedTo?.Name ?? "Nobody")</dd>
-
-                    @if (ticket.ResolvedAt is not null)
-                    {
-                        <dt>Resolved</dt>
-                        <dd>@ticket.ResolvedAt.Value.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</dd>
-                    }
-                </dl>
             </div>
+            <time class="ticketTime" datetime="@ticket.CreatedAt.ToString("o")">
+                Posted @ticket.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")
+            </time>
+        </header>
 
-            @* ---------- RF07 ---------- *@
-            <div class="card">
-                <h2 class="card-heading">Status</h2>
+        <h2 class="ticketTitle">@ticket.Title</h2>
 
-                @if (IsOwner)
-                {
-                    <label class="field-label" for="status">Change status</label>
-                    <select id="status" class="select-input" value="@ticket.Status"
-                            @onchange="ChangeStatusAsync" disabled="@changingStatus">
-                        @foreach (var status in Enum.GetValues<TicketStatus>())
-                        {
-                            <option value="@status">@status.GetDisplayName()</option>
-                        }
-                    </select>
+        <div class="ticketBody">@ticket.Description</div>
 
-                    @if (ticket.Status != TicketStatus.Resolved && ticket.Status != TicketStatus.Closed)
+        @* ── Existing replies ── *@
+        @if (ticket.Replies.Count > 0)
+        {
+            <div class="repliesSection">
+                <h3 class="sectionHeading">Replies (@ticket.Replies.Count)</h3>
+                <ol class="replyList">
+                    @foreach (var reply in ticket.Replies)
                     {
-                        <button type="button" class="btn btn-primary resolve-button"
+                        <li class="reply @(reply.AuthorId == ticket.CreatedById ? "replyOwner" : "")"
+                            @key="reply.Id">
+                            <div class="replyHead">
+                                <div class="replyAuthorRow">
+                                    <span class="replyAvatar" aria-hidden="true">
+                                        <i class="bi bi-person-fill"></i>
+                                    </span>
+                                    <span class="replyAuthor">@(reply.Author?.Name ?? "Removed user")</span>
+                                </div>
+                                <time class="replyTime">
+                                    @reply.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")
+                                </time>
+                            </div>
+                            <p class="replyBody">@reply.Body</p>
+                        </li>
+                    }
+                </ol>
+            </div>
+        }
+    </article>
+
+    @* ── Reply to Ticket form ── *@
+    <section class="replyCard">
+        <h3 class="sectionHeading">Reply to Ticket</h3>
+
+        @if (ticket.Status == TicketStatus.Closed)
+        {
+            <p class="empty-note">This ticket is closed — no further replies can be added.</p>
+        }
+        else
+        {
+            <EditForm Model="replyModel" OnValidSubmit="SendReplyAsync" novalidate>
+                <DataAnnotationsValidator />
+
+                <div class="replyFormGrid">
+                    <div class="replyField">
+                        <label class="field-label" for="reply-author-display">Author</label>
+                        <input id="reply-author-display" class="text-input"
+                               value="@(ticket.CreatedBy?.Email ?? "—")" disabled aria-readonly="true" />
+                    </div>
+
+                    <div class="replyField">
+                        <label class="field-label" for="reply-category-display">Category</label>
+                        <input id="reply-category-display" class="text-input"
+                               value="@(ticket.Category?.Name ?? "—")" disabled aria-readonly="true" />
+                    </div>
+
+                    <div class="replyField">
+                        <label class="field-label" for="reply-status-display">Status</label>
+                        @if (IsOwner)
+                        {
+                            <select id="reply-status-display" class="select-input"
+                                    value="@ticket.Status"
+                                    @onchange="ChangeStatusAsync"
+                                    disabled="@changingStatus">
+                                @foreach (var status in Enum.GetValues<TicketStatus>())
+                                {
+                                    <option value="@status">@status.GetDisplayName()</option>
+                                }
+                            </select>
+                        }
+                        else
+                        {
+                            <input id="reply-status-display" class="text-input"
+                                   value="@ticket.Status.GetDisplayName()" disabled aria-readonly="true" />
+                        }
+                    </div>
+                </div>
+
+                <div class="replyBodyField">
+                    <label class="field-label" for="reply-body">Ticket Body</label>
+                    <InputTextArea id="reply-body" class="text-input textarea" rows="5"
+                                   @bind-Value="replyModel.Body"
+                                   placeholder="Type ticket issue here.." />
+                    <ValidationMessage For="@(() => replyModel.Body)" class="field-error" />
+                </div>
+
+                <div class="replyFormActions">
+                    @if (IsOwner && ticket.Status != TicketStatus.Resolved && ticket.Status != TicketStatus.Closed)
+                    {
+                        <button type="button" class="btn btn-ghost"
                                 disabled="@changingStatus"
                                 @onclick="() => SetStatusAsync(TicketStatus.Resolved)">
                             Mark as resolved
                         </button>
                     }
-                }
-                else
-                {
-                    <p class="empty-note">
-                        Only @(ticket.CreatedBy?.Name ?? "the collaborator who raised this ticket")
-                        can change the status.
-                    </p>
-                }
-            </div>
-        </aside>
-    </div>
+                    <button type="submit" class="btn btn-primary" disabled="@sending">
+                        @(sending ? "Sending…" : "Submit Reply")
+                    </button>
+                </div>
+            </EditForm>
+        }
+    </section>
 }
 
 @code {
@@ -288,7 +291,16 @@ else
         await LoadAsync();
     }
 
-    private static string StatusClass(TicketStatus status) => status switch
+    private static string StatusDotClass(TicketStatus status) => status switch
+    {
+        TicketStatus.Open => "dotOpen",
+        TicketStatus.InProgress => "dotInProgress",
+        TicketStatus.Resolved => "dotResolved",
+        TicketStatus.Closed => "dotClosed",
+        _ => "dotOpen"
+    };
+
+    private static string StatusPillClass(TicketStatus status) => status switch
     {
         TicketStatus.Open => "pill-open",
         TicketStatus.InProgress => "pill-progress",
