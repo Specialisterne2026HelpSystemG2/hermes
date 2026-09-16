@@ -1,6 +1,7 @@
 using Hermes.Components;
 using Hermes.Components.Account;
 using Hermes.Data;
+using Hermes.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -33,6 +34,8 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddEntityFrameworkStores<HermesContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
+
+builder.Services.AddScoped<IUserService, IdentityUserService>();
 
 var app = builder.Build();
 
