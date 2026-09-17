@@ -52,8 +52,9 @@ public class UserFormModel : IValidatableObject
     [Required(ErrorMessage = "User type is required.")]
     public UserType? Type { get; set; }
 
-    [Required(ErrorMessage = "Department is required.")]
-    public Department? Department { get; set; }
+    [Required(ErrorMessage = "A department is required.")]
+    [Range(1, int.MaxValue, ErrorMessage = "A department is required.")]
+    public int? DepartmentId { get; set; }
 
     public bool IsActive { get; set; } = true;
 
@@ -90,7 +91,7 @@ public class UserFormModel : IValidatableObject
         Name = user.Name,
         Email = user.Email ?? string.Empty,
         Type = user.Type,
-        Department = user.Department,
+        DepartmentId = user.DepartmentId,
         IsActive = user.IsActive
     };
 }

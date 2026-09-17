@@ -6,7 +6,7 @@ namespace Hermes.Models;
 /// Modelled as an enum to keep the prototype free of an extra table. If departments
 /// ever need to be managed at runtime this becomes an entity with a foreign key.
 /// </summary>
-public enum Department
+public enum DepartmentEnum
 {
     [Display(Name = "Information Technology")]
     InformationTechnology = 1,

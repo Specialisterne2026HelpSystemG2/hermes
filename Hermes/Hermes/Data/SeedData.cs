@@ -12,6 +12,8 @@ public static class SeedData
     private const string AdminPassword = "Admin123!";
     private const string AdminName = "Hermes Administrator";
 
+    private const string DefaultDepartmentName = "Information Technology";
+
     private static readonly string[] DefaultCategories =
     [
         "Hardware",
@@ -21,12 +23,30 @@ public static class SeedData
         "Other"
     ];
 
+    private static readonly string[] DefaultDepartments =
+    [
+        DefaultDepartmentName,
+        "Human Resources",
+        "Finance",
+        "Sales",
+        "Operations",
+        "Legal"
+    ];
+
     public static async Task InitializeAsync(IServiceProvider services)
     {
         var context = services.GetRequiredService<HermesContext>();
         await context.Database.MigrateAsync();
 
         await SeedCategoriesAsync(context);
+        await SeedDepartmentsAsync(context);
+
+        // ApplicationUser.DepartmentId is a required FK, so every user needs a real
+        // department id. Departments are seeded above, so this always resolves.
+        var defaultDepartmentId = await context.Departments
+            .Where(d => d.Name == DefaultDepartmentName)
+            .Select(d => d.Id)
+            .FirstAsync();
 
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
         if (!await roleManager.RoleExistsAsync(AdminRole))
@@ -40,6 +60,11 @@ public static class SeedData
         if (existing is not null)
         {
             // An admin created before the profile columns existed has them at their
+            // default (empty name, Type 0, DepartmentId 0), which no longer satisfies
+            // the model.
+            if (existing.Type == UserType.Admin &&
+                !string.IsNullOrWhiteSpace(existing.Name) &&
+                existing.DepartmentId != 0)
             // default (empty name, Type 0), which no longer satisfies the model.
             if (existing.Type != UserType.Admin || string.IsNullOrWhiteSpace(existing.Name))
             {
@@ -50,8 +75,11 @@ public static class SeedData
                 await userManager.UpdateAsync(existing);
             }
 
-            // STATIC TEST DATA — seed demo tickets for the existing admin.
-            await SeedTestTicketsAsync(context, existing.Id);
+            existing.Name = AdminName;
+            existing.Type = UserType.Admin;
+            existing.DepartmentId = defaultDepartmentId;
+            existing.IsActive = true;
+            await userManager.UpdateAsync(existing);
             return;
         }
 
@@ -62,7 +90,7 @@ public static class SeedData
             EmailConfirmed = true,
             Name = AdminName,
             Type = UserType.Admin,
-            Department = Department.InformationTechnology,
+            DepartmentId = defaultDepartmentId,
             IsActive = true
         };
 
@@ -93,19 +121,19 @@ public static class SeedData
         await context.SaveChangesAsync();
     }
 
-    // ──────────────────────────────────────────────────────────────────────
-    //  STATIC TEST DATA — demo tickets for development and presentation.
-    //  These only exist so the Tickets page is not empty out of the box.
-    //  Remove this entire section (and the call in InitializeAsync) once
-    //  real ticket data is being created through the application.
-    // ──────────────────────────────────────────────────────────────────────
-    private static async Task SeedTestTicketsAsync(HermesContext context, string adminId)
+    /// <summary>
+    /// Its own guard on purpose: sharing one with the categories meant that a database
+    /// which already had categories never got departments.
+    /// </summary>
+    private static async Task SeedDepartmentsAsync(HermesContext context)
     {
-        // Skip if any tickets already exist (avoids duplicates on restart).
-        if (await context.Tickets.AnyAsync())
+        if (await context.Departments.AnyAsync())
         {
             return;
         }
+
+        context.Departments.AddRange(
+            DefaultDepartments.Select(name => new Department { Name = name, CreatedAt = DateTime.UtcNow }));
 
         var now = DateTime.UtcNow;
 

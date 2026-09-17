@@ -6,6 +6,7 @@
 @attribute [Authorize(Roles = "Admin")]
 @rendermode InteractiveServer
 @inject IUserService UserService
+@inject IDepartmentService DepartmentService
 
 <PageTitle>Users</PageTitle>
 
@@ -78,7 +79,7 @@ else
                         <td>@user.Name</td>
                         <td class="col-email">@user.Email</td>
                         <td>@user.Type.GetDisplayName()</td>
-                        <td>@user.Department.GetDisplayName()</td>
+                        <td>@(user.Department?.Name ?? "—")</td>
                         <td>
                             @if (user.IsActive)
                             {
@@ -144,6 +145,8 @@ else
     public string? SuccessFromQuery { get; set; }
 
     private IReadOnlyList<ApplicationUser> users = Array.Empty<ApplicationUser>();
+    private IReadOnlyList<Department> departments = Array.Empty<Department>();
+
     private string searchTerm = string.Empty;
     private bool loading = true;
     private bool deleting;
@@ -154,6 +157,9 @@ else
     protected override async Task OnInitializedAsync()
     {
         feedback = SuccessFromQuery;
+
+        departments = await DepartmentService.GetAllAsync();
+
         await LoadAsync();
     }
 
