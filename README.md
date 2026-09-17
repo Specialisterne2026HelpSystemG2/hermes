@@ -8,11 +8,11 @@ Hermes is a web-based help-desk application built as a group project. The name c
 
 ## Project Background
 
-The brief was to develop a help-system application from scratch following **Scrum methodology** — daily stand-ups, short sprint cycles, and a Trello kanban board to track progress.
+The brief was to develop a help-system application from scratch within 8 business days, as a team of three.
 
-One early challenge was aligning the team around a single tech stack: each member brought a different level of familiarity with .NET. After discussing past exposure to various languages and frameworks, the group chose **ASP.NET Core with Blazor Server**. The appeal was practical — Blazor Server keeps the frontend and backend in a single project with no separate API layer to maintain. The UI is rendered on the server and kept in sync with the browser over a real-time SignalR connection, which removed the overhead of building and consuming REST endpoints given the scope of work and the timeframe available (8 business days).
+One early challenge was aligning the team around a single tech stack: each member brought a different level of familiarity with .NET. After discussing past exposure to various languages and frameworks, the group chose **ASP.NET Core with Blazor Server**.
 
-The team spent one day prototyping rough ideas in **Figma** — login and registration screens, a first take on the dashboard layout, and the general visual direction. Several of those early concepts carried through into the final implementation. It was also during this prototyping phase that the team brainstormed names for the app, landing on **HERMES**.
+The appeal was practical — Blazor Server keeps the frontend and backend in a single C# project with no separate API layer to maintain. The server handles all the rendering and stays connected to the browser in real time, so there was no need to build a separate API — a good fit for the tight timeframe.
 
 ---
 
@@ -91,10 +91,14 @@ dotnet tool install --global dotnet-ef
 
 ## Team Workflow
 
-- WIP
+- **Scrum methodology** — daily stand-ups and short sprint cycles to keep the 8-day timeline on track.
+- **Trello kanban board** for tracking tasks and priorities across the team.
+- **Figma prototyping** — one day spent sketching login, registration, and dashboard screens; this is also when the team landed on the name *HERMES*.
+- **Branch-per-feature + pull requests** on GitHub for code integration and review.
+- The team had varying levels of experience with Git and version control; the branch-and-PR workflow was a learning process as much as a development practice.
 
 ---
 
 ## License
 
-This project was developed as a training exercise and is not currently published under an open-source license.
+This project was developed as a training exercise during the **Specialisterne 2026** program and is not currently published under an open-source license.
