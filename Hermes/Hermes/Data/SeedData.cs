@@ -65,14 +65,8 @@ public static class SeedData
             if (existing.Type == UserType.Admin &&
                 !string.IsNullOrWhiteSpace(existing.Name) &&
                 existing.DepartmentId != 0)
-            // default (empty name, Type 0), which no longer satisfies the model.
-            if (existing.Type != UserType.Admin || string.IsNullOrWhiteSpace(existing.Name))
             {
-                existing.Name = AdminName;
-                existing.Type = UserType.Admin;
-                existing.Department = Department.InformationTechnology;
-                existing.IsActive = true;
-                await userManager.UpdateAsync(existing);
+                return;
             }
 
             existing.Name = AdminName;
@@ -134,6 +128,24 @@ public static class SeedData
 
         context.Departments.AddRange(
             DefaultDepartments.Select(name => new Department { Name = name, CreatedAt = DateTime.UtcNow }));
+
+        await context.SaveChangesAsync();
+    }
+
+
+    // ──────────────────────────────────────────────────────────────────────
+    //  STATIC TEST DATA — demo tickets for development and presentation.
+    //  These only exist so the Tickets page is not empty out of the box.
+    //  Remove this entire section (and the call in InitializeAsync) once
+    //  real ticket data is being created through the application.
+    // ──────────────────────────────────────────────────────────────────────
+    private static async Task SeedTestTicketsAsync(HermesContext context, string adminId)
+    {
+        // Skip if any tickets already exist (avoids duplicates on restart).
+        if (await context.Tickets.AnyAsync())
+        {
+            return;
+        }
 
         var now = DateTime.UtcNow;
 
@@ -227,4 +239,5 @@ public static class SeedData
         context.Tickets.AddRange(testTickets);
         await context.SaveChangesAsync();
     }
+
 }
