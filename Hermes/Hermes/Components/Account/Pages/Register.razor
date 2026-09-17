@@ -36,15 +36,15 @@
                 <ValidationMessage For="() => Input.Email" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
-                <InputSelect @bind-Value="Input.Department" id="Input.Department" class="form-select" aria-required="true">
+                <InputSelect @bind-Value="Input.DepartmentId" id="Input.DepartmentId" class="form-select" aria-required="true">
                     <option value="">-- Select --</option>
                     @foreach (var department in departments)
                     {
                         <option value="@department.Id">@department.Name</option>
                     }
                 </InputSelect>
-                <label for="Input.Department">Department</label>
-                <ValidationMessage For="() => Input.Department" class="text-danger" />
+                <label for="Input.DepartmentId">Department</label>
+                <ValidationMessage For="() => Input.DepartmentId" class="text-danger" />
             </div>
             <div class="form-floating mb-3">
                 <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
@@ -89,7 +89,7 @@
         var user = CreateUser();
 
         user.Name = Input.Name.Trim();
-        user.Department = Input.Department;
+        user.DepartmentId = Input.DepartmentId;
         // Self-registration always yields a standard user; only an admin can promote.
         user.Type = UserType.Standard;
 
@@ -146,7 +146,7 @@
 
         [Required(ErrorMessage = "Department is required.")]
         [Display(Name = "Department")]
-        public Department? Department { get; set; }
+        public int DepartmentId { get; set; }
 
         [Required]
         [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
