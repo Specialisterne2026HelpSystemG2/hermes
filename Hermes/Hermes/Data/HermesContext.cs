@@ -1,3 +1,4 @@
+using Hermes.Models;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,6 +8,8 @@ public class HermesContext(DbContextOptions<HermesContext> options)
     : IdentityDbContext<ApplicationUser>(options)
 {
     public DbSet<Category> Categories => Set<Category>();
+
+    public DbSet<Department> Departments => Set<Department>();
 
     public DbSet<Ticket> Tickets => Set<Ticket>();
 
@@ -26,7 +29,11 @@ public class HermesContext(DbContextOptions<HermesContext> options)
 
             // Enums are stored as int, which is the EF Core default.
             entity.Property(u => u.Type).HasConversion<int>().IsRequired();
-            entity.Property(u => u.Department).HasConversion<int>().IsRequired();
+            //entity.Property(u => u.Department).HasConversion<int>().IsRequired();
+            entity.HasOne(t => t.Department)
+            .WithMany(c => c.Users)
+            .HasForeignKey(t => t.DepartmentId)
+            .OnDelete(DeleteBehavior.Restrict);
 
             entity.Property(u => u.IsActive).IsRequired();
         });
@@ -38,6 +45,15 @@ public class HermesContext(DbContextOptions<HermesContext> options)
             // RF06.2 — the check in CategoryService only produces a friendly message;
             // this is what actually prevents a duplicate.
             entity.HasIndex(c => c.Name).IsUnique().HasDatabaseName("IX_Categories_Name");
+        });
+
+        builder.Entity<Department>(entity =>
+        {
+            entity.Property(c => c.Name).HasMaxLength(80).IsRequired();
+
+            // RF06.2 — the check in CategoryService only produces a friendly message;
+            // this is what actually prevents a duplicate.
+            entity.HasIndex(c => c.Name).IsUnique().HasDatabaseName("IX_Departments_Name");
         });
 
         builder.Entity<Ticket>(entity =>

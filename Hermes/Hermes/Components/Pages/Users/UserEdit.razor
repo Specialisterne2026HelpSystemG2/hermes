@@ -4,11 +4,13 @@
 @using Hermes.Common
 @using Hermes.Models
 @using Hermes.Services
+@using Hermes.Data
 @attribute [Authorize(Roles = "Admin")]
 @rendermode InteractiveServer
 @implements IDisposable
 @inject IUserService UserService
 @inject NavigationManager Navigation
+@inject IDepartmentService DepartmentService
 
 <PageTitle>@Title</PageTitle>
 
@@ -118,9 +120,9 @@ else
                     <InputSelect id="department" class="select-input" @bind-Value="model.Department"
                                  aria-required="true">
                         <option value="">-- Select --</option>
-                        @foreach (var department in Enum.GetValues<Department>())
+                        @foreach (var department in departments)
                         {
-                            <option value="@department">@department.GetDisplayName()</option>
+                            <option value="@department">@department.Name</option>
                         }
                     </InputSelect>
                     <ValidationMessage For="@(() => model.Department)" class="field-error" />
@@ -168,6 +170,8 @@ else
     private string? errorMessage;
     private string? loadedId;
     private bool loadedForCreate;
+
+    private IReadOnlyList<Department> departments = Array.Empty<Department>();
 
     protected override async Task OnParametersSetAsync()
     {

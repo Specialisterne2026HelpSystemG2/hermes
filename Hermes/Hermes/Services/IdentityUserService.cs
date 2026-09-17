@@ -73,7 +73,7 @@ public class IdentityUserService : IUserService
             Name = model.Name.Trim(),
             // The form's [Required] already guaranteed Type and Department are not null.
             Type = model.Type!.Value,
-            Department = model.Department!.Value,
+            Department = model.Department,
             IsActive = model.IsActive,
             CreatedAt = DateTime.UtcNow
         };
@@ -109,7 +109,7 @@ public class IdentityUserService : IUserService
         user.UserName = email;
         user.Email = email;
         user.Type = model.Type!.Value;
-        user.Department = model.Department!.Value;
+        user.Department = model.Department;
         user.IsActive = model.IsActive;
         user.UpdatedAt = DateTime.UtcNow;
 

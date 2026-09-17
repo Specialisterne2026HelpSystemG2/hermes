@@ -1,5 +1,6 @@
 using Hermes.Models;
 using Microsoft.AspNetCore.Identity;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Hermes.Data;
 
@@ -14,7 +15,9 @@ public class ApplicationUser : IdentityUser
 
     public UserType Type { get; set; }
 
-    public Department Department { get; set; }
+    public int DepartmentId { get; set; }
+
+    public Department? Department { get; set; }
 
     public bool IsActive { get; set; } = true;
 

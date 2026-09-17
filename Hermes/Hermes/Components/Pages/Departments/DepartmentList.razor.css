@@ -1,0 +1,145 @@
+.category-grid {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+}
+
+.form-card,
+.list-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.form-card {
+    padding: 20px;
+}
+
+.list-card {
+    overflow-x: auto;
+    padding: 4px;
+}
+
+.card-heading {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--card-title);
+    margin: 0 0 14px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.data-table th,
+.data-table td {
+    text-align: left;
+    padding: 12px 14px;
+    vertical-align: middle;
+}
+
+.data-table thead th {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--card-title);
+    background: var(--surface-muted);
+    border-bottom: 1px solid var(--border);
+}
+
+.data-table tbody tr + tr td {
+    border-top: 1px solid var(--border-subtle);
+}
+
+.col-created,
+.col-actions {
+    white-space: nowrap;
+}
+
+.col-actions {
+    text-align: right;
+}
+
+.col-actions .btn + .btn {
+    margin-left: 6px;
+}
+
+.dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(13, 33, 55, 0.55);
+    z-index: 1040;
+}
+
+.dialog-wrap {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 1050;
+}
+
+.dialog {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: 0 12px 32px rgba(13, 33, 55, 0.2);
+}
+
+.dialog-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.dialog-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.dialog-body {
+    padding: 18px 20px;
+    font-size: 13px;
+    color: var(--text-primary);
+    line-height: 1.55;
+}
+
+.dialog-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+@media (max-width: 860px) {
+    .category-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -3,6 +3,7 @@
 @using System.ComponentModel.DataAnnotations
 @using Hermes.Common
 @using Hermes.Models
+@using Hermes.Services
 @using Microsoft.AspNetCore.Identity
 
 @inject UserManager<ApplicationUser> UserManager
@@ -10,6 +11,7 @@
 @inject SignInManager<ApplicationUser> SignInManager
 @inject ILogger<Register> Logger
 @inject IdentityRedirectManager RedirectManager
+@inject IDepartmentService DepartmentService
 
 <PageTitle>Register</PageTitle>
 
@@ -36,9 +38,9 @@
             <div class="form-floating mb-3">
                 <InputSelect @bind-Value="Input.Department" id="Input.Department" class="form-select" aria-required="true">
                     <option value="">-- Select --</option>
-                    @foreach (var department in Enum.GetValues<Department>())
+                    @foreach (var department in departments)
                     {
-                        <option value="@department">@department.GetDisplayName()</option>
+                        <option value="@department">@department.Name</option>
                     }
                 </InputSelect>
                 <label for="Input.Department">Department</label>
@@ -61,6 +63,7 @@
 
 @code {
     private IEnumerable<IdentityError>? identityErrors;
+    private IReadOnlyList<Department> departments = Array.Empty<Department>();
 
     [SupplyParameterFromForm]
     private InputModel Input { get; set; } = default!;
@@ -80,7 +83,7 @@
         var user = CreateUser();
 
         user.Name = Input.Name.Trim();
-        user.Department = Input.Department!.Value;
+        user.Department = Input.Department;
         // Self-registration always yields a standard user; only an admin can promote.
         user.Type = UserType.Standard;
 

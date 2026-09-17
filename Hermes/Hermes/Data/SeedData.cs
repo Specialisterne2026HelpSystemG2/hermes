@@ -1,6 +1,7 @@
 using Hermes.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 
 namespace Hermes.Data;
 
@@ -19,6 +20,16 @@ public static class SeedData
         "Network",
         "Access and permissions",
         "Other"
+    ];
+
+    private static readonly string[] DefaultDepartments =
+    [
+        "Information Technology",
+        "Human Resources",
+        "Finance",
+        "Sales",
+        "Operations",
+        "Legal"
     ];
 
     public static async Task InitializeAsync(IServiceProvider services)
@@ -48,7 +59,7 @@ public static class SeedData
 
             existing.Name = AdminName;
             existing.Type = UserType.Admin;
-            existing.Department = Department.InformationTechnology;
+            //existing.Department = Department.InformationTechnology;
             existing.IsActive = true;
             await userManager.UpdateAsync(existing);
             return;
@@ -61,7 +72,7 @@ public static class SeedData
             EmailConfirmed = true,
             Name = AdminName,
             Type = UserType.Admin,
-            Department = Department.InformationTechnology,
+            //Department = Department.InformationTechnology,
             IsActive = true
         };
 
@@ -85,6 +96,8 @@ public static class SeedData
 
         context.Categories.AddRange(
             DefaultCategories.Select(name => new Category { Name = name, CreatedAt = DateTime.UtcNow }));
+        context.Departments.AddRange(
+            DefaultDepartments.Select(name => new Department { Name = name, CreatedAt = DateTime.UtcNow }));
 
         await context.SaveChangesAsync();
     }
