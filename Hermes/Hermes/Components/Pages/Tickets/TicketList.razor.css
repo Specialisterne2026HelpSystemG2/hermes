@@ -1,82 +1,252 @@
-.filter-bar {
+/* ── Toolbar ── */
+.toolbar {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
-    margin-bottom: 18px;
-    align-items: flex-end;
+    gap: 12px 16px;
+    align-items: center;
+    margin-bottom: 20px;
 }
 
-.filter {
+.toolbarSearch {
+    position: relative;
+    flex: 1 1 280px;
+    max-width: 420px;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-readable);
+    font-size: 14px;
+    pointer-events: none;
+}
+
+.searchInput {
+    padding-left: 36px;
+}
+
+.toolbarFilters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-left: auto;
+    align-items: center;
+}
+
+.filterSelect {
+    width: auto;
+    min-width: 140px;
+}
+
+
+/* ── Status tabs ── */
+.tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 22px;
+}
+
+.tab {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-readable);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 10px 14px;
+    margin-bottom: -1px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: color 0.15s;
+}
+
+.tab:hover {
+    color: var(--text-primary);
+}
+
+.tabActive {
+    color: var(--nav-active-text);
+    border-bottom-color: var(--primary);
+    font-weight: 600;
+}
+
+.tab:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+
+/* ── Ticket cards ── */
+.ticketList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    min-width: 150px;
-    flex: 1 1 150px;
+    gap: 14px;
 }
 
-.filter:first-child {
-    flex: 2 1 220px;
-}
-
-.filter-reset {
-    flex: 0 0 auto;
-    min-width: 0;
-}
-
-.table-card {
+.ticketCard {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
-    overflow-x: auto;
+    padding: 20px 22px;
+    transition: border-color 0.15s;
 }
 
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
+.ticketCard:hover {
+    border-color: var(--primary-subtle);
+}
+
+.ticketCardHead {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px 16px;
+    margin-bottom: 10px;
+}
+
+.ticketIdRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.statusDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.dotOpen       { background: var(--secondary); }
+.dotInProgress { background: var(--warning); }
+.dotResolved   { background: var(--success); }
+.dotClosed     { background: var(--text-muted); }
+
+.ticketId {
     font-size: 13px;
-}
-
-.data-table th,
-.data-table td {
-    text-align: left;
-    padding: 12px 14px;
-    vertical-align: middle;
-}
-
-.data-table thead th {
-    font-size: 11px;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--card-title);
-    background: var(--surface-muted);
-    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
 }
 
-.data-table tbody tr + tr td {
+.pillHigh {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 20px;
+    background: var(--danger-subtle);
+    color: var(--danger-strong);
+}
+
+.ticketTime {
+    font-size: 11px;
+    color: var(--text-readable);
+}
+
+.ticketSubject {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 8px;
+    line-height: 1.35;
+}
+
+.ticketPreview {
+    font-size: 13px;
+    color: var(--text-readable);
+    line-height: 1.55;
+    margin: 0 0 16px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.ticketCardFoot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding-top: 14px;
     border-top: 1px solid var(--border-subtle);
 }
 
-.data-table tbody tr:hover td {
+.ticketMeta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+.requester {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.requesterAvatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--primary-subtle);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.requesterName {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.categoryBadge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 20px;
     background: var(--surface-muted);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
 }
 
-.col-id,
-.col-created,
-.col-actions {
-    white-space: nowrap;
+.openLink {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary);
+    text-decoration: none;
 }
 
-.col-id {
-    width: 1%;
-    color: var(--text-muted);
-    font-variant-numeric: tabular-nums;
+.openLink:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
 }
 
-.col-actions {
-    text-align: right;
+.openLink:focus-visible {
+    outline: 3px solid var(--focus-ring);
+    outline-offset: 2px;
 }
 
+.ticketCount {
+    margin-top: 16px;
+}
+
+
+/* ── Status and priority pills (reused from detail page) ── */
 .pill-open {
     background: var(--primary-subtle);
     color: var(--primary);
@@ -107,9 +277,20 @@
     color: var(--text-secondary);
 }
 
-@media (max-width: 620px) {
-    .filter,
-    .filter:first-child {
+
+/* ── Responsive ── */
+@media (max-width: 720px) {
+    .toolbarSearch {
         flex: 1 1 100%;
+        max-width: none;
+    }
+
+    .toolbarFilters {
+        flex: 1 1 100%;
+        margin-left: 0;
+    }
+
+    .filterSelect {
+        flex: 1 1 130px;
     }
 }
