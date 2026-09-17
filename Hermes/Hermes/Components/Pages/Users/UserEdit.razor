@@ -117,15 +117,14 @@ else
                     <label class="field-label" for="department">
                         Department <span class="field-required" aria-hidden="true">*</span>
                     </label>
-                    <InputSelect id="department" class="select-input" @bind-Value="model.Department"
-                                 aria-required="true">
+                    <InputSelect id="department" class="select-input" @bind-Value="model.DepartmentId">
                         <option value="">-- Select --</option>
                         @foreach (var department in departments)
                         {
-                            <option value="@department">@department.Name</option>
+                            <option value="@department.Id">@department.Name</option>
                         }
                     </InputSelect>
-                    <ValidationMessage For="@(() => model.Department)" class="field-error" />
+                    <ValidationMessage For="@(() => model.DepartmentId)" class="field-error" />
                 </div>
 
                 <div class="field span-2">
@@ -154,6 +153,9 @@ else
 }
 
 @code {
+    [SupplyParameterFromQuery(Name = "success")]
+    public string? SuccessFromQuery { get; set; }
+
     [Parameter]
     public string? Id { get; set; }
 
@@ -167,11 +169,20 @@ else
 
     private bool saving;
     private bool notFound;
+    private string? feedback;
     private string? errorMessage;
     private string? loadedId;
     private bool loadedForCreate;
 
     private IReadOnlyList<Department> departments = Array.Empty<Department>();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        feedback = SuccessFromQuery;
+
+        departments = await DepartmentService.GetAllAsync();
+    }
 
     protected override async Task OnParametersSetAsync()
     {

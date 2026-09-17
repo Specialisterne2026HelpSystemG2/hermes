@@ -30,7 +30,8 @@ public class IdentityUserService : IUserService
     public async Task<IReadOnlyList<ApplicationUser>> GetAllAsync(string? search = null, CancellationToken ct = default)
     {
         // AsNoTracking: read-only for display, so EF need not track for changes.
-        var query = _context.Users.AsNoTracking();
+        var query = _context.Users.AsNoTracking().Include(t => t.Department)
+            .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -52,6 +53,7 @@ public class IdentityUserService : IUserService
     {
         return await _context.Users
             .AsNoTracking()
+            .Include(t => t.Department)
             .FirstOrDefaultAsync(u => u.Id == id, ct);
     }
 
@@ -61,6 +63,13 @@ public class IdentityUserService : IUserService
         {
             return OperationResult<ApplicationUser>.FieldFailure(
                 nameof(UserFormModel.Password), "Password is required.");
+        }
+
+        var departmentExists = await _context.Departments.AnyAsync(c => c.Id == model.DepartmentId, ct);
+        if (!departmentExists)
+        {
+            return OperationResult<ApplicationUser>.FieldFailure(
+                nameof(UserFormModel.DepartmentId), "Choose a valid department.");
         }
 
         var email = NormalizeEmail(model.Email);
@@ -73,7 +82,7 @@ public class IdentityUserService : IUserService
             Name = model.Name.Trim(),
             // The form's [Required] already guaranteed Type and Department are not null.
             Type = model.Type!.Value,
-            Department = model.Department,
+            DepartmentId = model.DepartmentId!.Value,
             IsActive = model.IsActive,
             CreatedAt = DateTime.UtcNow
         };
@@ -109,7 +118,7 @@ public class IdentityUserService : IUserService
         user.UserName = email;
         user.Email = email;
         user.Type = model.Type!.Value;
-        user.Department = model.Department;
+        user.DepartmentId = model.DepartmentId!.Value;
         user.IsActive = model.IsActive;
         user.UpdatedAt = DateTime.UtcNow;
 
